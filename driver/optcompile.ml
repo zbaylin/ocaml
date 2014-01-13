@@ -96,6 +96,7 @@ let implementation ppf sourcefile outputprefix =
   in
   try comp (Pparse.parse_implementation ppf sourcefile)
   with x ->
+    Location.register_backtrace (Printexc.get_backtrace());
     Stypes.dump (Some (outputprefix ^ ".annot"));
     remove_file objfile;
     remove_file cmxfile;
