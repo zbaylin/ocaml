@@ -87,6 +87,10 @@ ASMCOMP=asmcomp/arch.cmo asmcomp/debuginfo.cmo \
   asmcomp/reloadgen.cmo asmcomp/reload.cmo \
   asmcomp/printlinear.cmo asmcomp/linearize.cmo \
   asmcomp/schedgen.cmo asmcomp/scheduling.cmo \
+  asmcomp/coff.cmo \
+  asmcomp/intel_proc.cmo \
+  asmcomp/intel_gas.cmo \
+  asmcomp/intel_masm.cmo \
   asmcomp/emitaux.cmo asmcomp/emit.cmo asmcomp/asmgen.cmo \
   asmcomp/asmlink.cmo asmcomp/asmlibrarian.cmo asmcomp/asmpackager.cmo \
   driver/opterrors.cmo driver/optcompile.cmo
@@ -493,12 +497,6 @@ partialclean::
 
 beforedepend:: asmcomp/arch.ml
 
-ifeq ($(TOOLCHAIN),msvc)
-ASMCOMP_EMIT=asmcomp/$(ARCH)/emit_nt.mlp
-else
-ASMCOMP_EMIT=asmcomp/$(ARCH)/emit.mlp
-endif
-
 asmcomp/proc.ml: asmcomp/$(ARCH)/proc.ml
 	cp asmcomp/$(ARCH)/proc.ml asmcomp/proc.ml
 
@@ -531,10 +529,9 @@ partialclean::
 
 beforedepend:: asmcomp/scheduling.ml
 
-# Preprocess the code emitters
 
-asmcomp/emit.ml: $(ASMCOMP_EMIT) tools/cvt_emit
-	boot/ocamlrun tools/cvt_emit < $(ASMCOMP_EMIT) > asmcomp/emit.ml
+asmcomp/emit.ml: asmcomp/$(ARCH)/emit.mlp
+	cp asmcomp/$(ARCH)/emit.mlp asmcomp/emit.ml
 
 partialclean::
 	rm -f asmcomp/emit.ml

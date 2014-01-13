@@ -109,3 +109,5 @@ val report_error: formatter -> error -> unit
 
 val report_exception: formatter -> exn -> unit
   (* Reraise the exception if it is unknown. *)
+
+val register_backtrace : string -> unit
