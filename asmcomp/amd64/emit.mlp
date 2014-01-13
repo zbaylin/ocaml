@@ -453,7 +453,7 @@ let add_float_constant cst =
 
 let emit_float_constant cst lbl =
   _label (emit_label lbl);
-  emit (Qword (emit_float64_directive cst)) [||]
+  _qword (emit_float64_directive cst)
 
 let emit_global_label lbl =
   let lbl = emit_symbol lbl in
@@ -776,8 +776,8 @@ let emit_instr fallthrough i =
     emit_align 4;
     emit (NewLabel (emit_label lbl, DWORD)) [||];
     for i = 0 to Array.length jumptbl - 1 do
-      emit (Dword (ConstSub (ConstLabel( emit_label jumptbl.(i) ),
-            ConstLabel( emit_label lbl )))) [||]
+      _long (ConstSub (ConstLabel( emit_label jumptbl.(i) ),
+            ConstLabel( emit_label lbl )))
     done;
     _text ()
   | Lsetuptrap lbl ->
@@ -890,18 +890,18 @@ let emit_item = function
     add_def_symbol s;
     _label (emit_symbol s)
   | Cdefine_label lbl -> _label  (emit_data_label lbl)
-  | Cint8 n -> emit (Byte (ConstInt n)) [||]
-  | Cint16 n -> emit (Word (ConstInt n)) [||]
-  | Cint32 n -> emit (Dword (ConstNat n)) [||]
-  | Cint n -> emit (Qword (ConstNat n)) [||]
+  | Cint8 n -> _byte (ConstInt n)
+  | Cint16 n -> _word (ConstInt n)
+  | Cint32 n -> _long (ConstNat n)
+  | Cint n -> _qword (ConstNat n)
   | Csingle f -> assert false
-  | Cdouble f -> emit (Qword
-                   (Const64 (Int64.bits_of_float (float_of_string f)))) [||]
+  | Cdouble f -> _qword
+                   (Const64 (Int64.bits_of_float (float_of_string f)))
   | Csymbol_address s ->
     add_used_symbol s;
-    emit (Qword (ConstLabel (emit_symbol s))) [||]
+    _qword (ConstLabel (emit_symbol s))
   | Clabel_address lbl ->
-    emit (Qword (ConstLabel (emit_data_label lbl))) [||]
+    _qword (ConstLabel (emit_data_label lbl))
   | Cstring s ->
     emit (Bytes s) [||]
   | Cskip n ->
@@ -942,12 +942,12 @@ let begin_assembly() =
     end;
     emit_align 16;
     _label (emit_symbol "caml_negf_mask");
-    emit (Qword (Const64 0x8000000000000000L)) [||];
-    emit (Qword (Const64 0L)) [||];
+    _qword (Const64 0x8000000000000000L);
+    _qword (Const64 0L);
     emit_align 16;
     _label (emit_symbol "caml_absf_mask");
-    emit (Qword (Const64 0x7FFFFFFFFFFFFFFFL)) [||];
-    emit (Qword (Const64 0xFFFFFFFFFFFFFFFFL)) [||];
+    _qword (Const64 0x7FFFFFFFFFFFFFFFL);
+    _qword (Const64 0xFFFFFFFFFFFFFFFFL);
   end;
 
   let lbl_begin = Compilenv.make_symbol (Some "data_begin") in
@@ -992,7 +992,7 @@ let end_assembly() =
   let lbl_end = Compilenv.make_symbol (Some "data_end") in
   add_def_symbol lbl_end;
   emit_global_label lbl_end;
-  emit (Dword (ConstInt 0)) [||];
+  _long (ConstInt 0);
 
   let lbl = Compilenv.make_symbol (Some "frametable") in
   add_def_symbol lbl;
