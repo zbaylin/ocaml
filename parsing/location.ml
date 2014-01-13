@@ -361,18 +361,8 @@ let () =
           None
     )
 
-let backtrace = ref None
-let register_backtrace s =
-  backtrace := Some s
 
 let report_exception ppf exn =
   match error_of_exn exn with
   | Some err -> fprintf ppf "@[%a@]@." report_error err
-  | None ->
-    begin match !backtrace with
-      None -> ()
-      | Some s ->
-        fprintf ppf "@[%s@]@." s
-    end;
-    raise exn
-
+  | None -> raise exn

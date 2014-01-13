@@ -103,9 +103,6 @@ OTHEROBJS=\
   $(OTOPDIR)/asmcomp/linearize.cmo \
   $(OTOPDIR)/asmcomp/schedgen.cmo \
   $(OTOPDIR)/asmcomp/scheduling.cmo \
-  $(OTOPDIR)/asmcomp/intel_proc.cmo \
-  $(OTOPDIR)/asmcomp/intel_gas.cmo \
-  $(OTOPDIR)/asmcomp/intel_masm.cmo \
   $(OTOPDIR)/asmcomp/emitaux.cmo \
   $(OTOPDIR)/asmcomp/emit.cmo \
   $(OTOPDIR)/asmcomp/printclambda.cmo \

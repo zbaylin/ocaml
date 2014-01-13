@@ -21,7 +21,7 @@ open Mach
 (* Which asm conventions to use *)
 let masm =
   match Config.ccomp_type with
-  | "msvc" | "masm" -> true
+  | "msvc" -> true
   | _      -> false
 
 (* Registers available for register allocation *)

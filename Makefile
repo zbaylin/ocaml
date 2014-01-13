@@ -16,9 +16,9 @@ include config/Makefile
 include stdlib/StdlibModules
 
 CAMLC=boot/ocamlrun boot/ocamlc -nostdlib -I boot
-CAMLOPT=boot/ocamlrun ./ocamlopt -nostdlib -I stdlib -I otherlibs/dynlink -S
-COMPFLAGS=-strict-sequence -w +33..39 -warn-error A $(INCLUDES) -g
-LINKFLAGS=-g
+CAMLOPT=boot/ocamlrun ./ocamlopt -nostdlib -I stdlib -I otherlibs/dynlink
+COMPFLAGS=-strict-sequence -w +33..39 -warn-error A $(INCLUDES)
+LINKFLAGS=
 
 CAMLYACC=boot/ocamlyacc
 YACCFLAGS=-v
@@ -91,12 +91,7 @@ ASMCOMP=asmcomp/arch.cmo asmcomp/debuginfo.cmo \
   asmcomp/reloadgen.cmo asmcomp/reload.cmo \
   asmcomp/printlinear.cmo asmcomp/linearize.cmo \
   asmcomp/schedgen.cmo asmcomp/scheduling.cmo \
-  asmcomp/intel_proc.cmo \
-  asmcomp/intel_gas.cmo \
-  asmcomp/intel_masm.cmo \
-  asmcomp/emitaux.cmo \
-  asmcomp/emit.cmo \
-  asmcomp/asmgen.cmo \
+  asmcomp/emitaux.cmo asmcomp/emit.cmo asmcomp/asmgen.cmo \
   asmcomp/asmlink.cmo asmcomp/asmlibrarian.cmo asmcomp/asmpackager.cmo \
   driver/opterrors.cmo driver/optcompile.cmo
 
@@ -570,12 +565,10 @@ beforedepend:: bytecomp/runtimedef.ml
 
 # Choose the right machine-dependent files
 
-partialclean:: asmclean
-
 asmcomp/arch.ml: asmcomp/$(ARCH)/arch.ml
 	ln -s $(ARCH)/arch.ml asmcomp/arch.ml
 
-asmclean::
+partialclean::
 	rm -f asmcomp/arch.ml
 
 beforedepend:: asmcomp/arch.ml
@@ -583,7 +576,7 @@ beforedepend:: asmcomp/arch.ml
 asmcomp/proc.ml: asmcomp/$(ARCH)/proc.ml
 	ln -s $(ARCH)/proc.ml asmcomp/proc.ml
 
-asmclean::
+partialclean::
 	rm -f asmcomp/proc.ml
 
 beforedepend:: asmcomp/proc.ml
@@ -591,7 +584,7 @@ beforedepend:: asmcomp/proc.ml
 asmcomp/selection.ml: asmcomp/$(ARCH)/selection.ml
 	ln -s $(ARCH)/selection.ml asmcomp/selection.ml
 
-asmclean::
+partialclean::
 	rm -f asmcomp/selection.ml
 
 beforedepend:: asmcomp/selection.ml
@@ -599,7 +592,7 @@ beforedepend:: asmcomp/selection.ml
 asmcomp/reload.ml: asmcomp/$(ARCH)/reload.ml
 	ln -s $(ARCH)/reload.ml asmcomp/reload.ml
 
-asmclean::
+partialclean::
 	rm -f asmcomp/reload.ml
 
 beforedepend:: asmcomp/reload.ml
@@ -607,7 +600,7 @@ beforedepend:: asmcomp/reload.ml
 asmcomp/scheduling.ml: asmcomp/$(ARCH)/scheduling.ml
 	ln -s $(ARCH)/scheduling.ml asmcomp/scheduling.ml
 
-asmclean::
+partialclean::
 	rm -f asmcomp/scheduling.ml
 
 beforedepend:: asmcomp/scheduling.ml
@@ -618,13 +611,10 @@ asmcomp/emit.ml: asmcomp/$(ARCH)/emit.mlp tools/cvt_emit
 	$(CAMLRUN) tools/cvt_emit < asmcomp/$(ARCH)/emit.mlp > asmcomp/emit.ml \
 	|| { rm -f asmcomp/emit.ml; exit 2; }
 
-asmclean::
+partialclean::
 	rm -f asmcomp/emit.ml
 
 beforedepend:: asmcomp/emit.ml
-
-asmclean::
-	rm -f asmcomp/*.cm?
 
 tools/cvt_emit: tools/cvt_emit.mll
 	cd tools; \
