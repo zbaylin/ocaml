@@ -93,7 +93,7 @@ and expression_desc =
   | Texp_sequence of expression * expression
   | Texp_while of expression * expression
   | Texp_for of
-      Ident.t * string loc * expression * expression * direction_flag *
+      Ident.t * Parsetree.pattern * expression * expression * direction_flag *
         expression
   | Texp_send of expression * meth * expression option
   | Texp_new of Path.t * Longident.t loc * Types.class_declaration
@@ -187,7 +187,7 @@ and module_type_constraint =
 and module_expr_desc =
     Tmod_ident of Path.t * Longident.t loc
   | Tmod_structure of structure
-  | Tmod_functor of Ident.t * string loc * module_type * module_expr
+  | Tmod_functor of Ident.t * string loc * module_type option * module_expr
   | Tmod_apply of module_expr * module_expr * module_coercion
   | Tmod_constraint of
       module_expr * Types.module_type * module_type_constraint * module_coercion
@@ -211,7 +211,8 @@ and structure_item_desc =
   | Tstr_primitive of value_description
   | Tstr_type of type_declaration list
   | Tstr_exception of constructor_declaration
-  | Tstr_exn_rebind of Ident.t * string loc * Path.t * Longident.t loc * attribute list
+  | Tstr_exn_rebind of
+      Ident.t * string loc * Path.t * Longident.t loc * attribute list
   | Tstr_module of module_binding
   | Tstr_recmodule of module_binding list
   | Tstr_modtype of module_type_declaration
@@ -227,6 +228,7 @@ and module_binding =
      mb_name: string loc;
      mb_expr: module_expr;
      mb_attributes: attribute list;
+     mb_loc: Location.t;
     }
 
 and value_binding =
@@ -238,9 +240,11 @@ and value_binding =
 
 and module_coercion =
     Tcoerce_none
-  | Tcoerce_structure of (int * module_coercion) list
+  | Tcoerce_structure of (int * module_coercion) list *
+                         (Ident.t * int * module_coercion) list
   | Tcoerce_functor of module_coercion * module_coercion
   | Tcoerce_primitive of Primitive.description
+  | Tcoerce_alias of Path.t * module_coercion
 
 and module_type =
   { mty_desc: module_type_desc;
@@ -253,9 +257,10 @@ and module_type =
 and module_type_desc =
     Tmty_ident of Path.t * Longident.t loc
   | Tmty_signature of signature
-  | Tmty_functor of Ident.t * string loc * module_type * module_type
+  | Tmty_functor of Ident.t * string loc * module_type option * module_type
   | Tmty_with of module_type * (Path.t * Longident.t loc * with_constraint) list
   | Tmty_typeof of module_expr
+  | Tmty_alias of Path.t * Longident.t loc
 
 and signature = {
   sig_items : signature_item list;
@@ -287,6 +292,7 @@ and module_declaration =
      md_name: string loc;
      md_type: module_type;
      md_attributes: attribute list;
+     md_loc: Location.t;
     }
 
 and module_type_declaration =
@@ -295,6 +301,7 @@ and module_type_declaration =
      mtd_name: string loc;
      mtd_type: module_type option;
      mtd_attributes: attribute list;
+     mtd_loc: Location.t;
     }
 
 and with_constraint =

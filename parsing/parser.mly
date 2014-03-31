@@ -510,16 +510,18 @@ top_structure_tail:
 ;
 use_file:
     use_file_tail                        { $1 }
-  | seq_expr post_item_attributes use_file_tail               { Ptop_def[mkstrexp $1 $2] :: $3 }
+  | seq_expr post_item_attributes use_file_tail
+                                         { Ptop_def[mkstrexp $1 $2] :: $3 }
 ;
 use_file_tail:
-    EOF                                         { [] }
-  | SEMISEMI EOF                                { [] }
-  | SEMISEMI seq_expr post_item_attributes use_file_tail             { Ptop_def[mkstrexp $2 $3] :: $4 }
-  | SEMISEMI structure_item use_file_tail       { Ptop_def[$2] :: $3 }
-  | SEMISEMI toplevel_directive use_file_tail   { $2 :: $3 }
-  | structure_item use_file_tail                { Ptop_def[$1] :: $2 }
-  | toplevel_directive use_file_tail            { $1 :: $2 }
+    EOF                                       { [] }
+  | SEMISEMI EOF                              { [] }
+  | SEMISEMI seq_expr post_item_attributes use_file_tail
+                                              { Ptop_def[mkstrexp $2 $3] :: $4 }
+  | SEMISEMI structure_item use_file_tail     { Ptop_def[$2] :: $3 }
+  | SEMISEMI toplevel_directive use_file_tail { $2 :: $3 }
+  | structure_item use_file_tail              { Ptop_def[$1] :: $2 }
+  | toplevel_directive use_file_tail          { $1 :: $2 }
 ;
 parse_core_type:
     core_type EOF { $1 }
@@ -533,6 +535,25 @@ parse_pattern:
 
 /* Module expressions */
 
+functor_arg:
+    LPAREN RPAREN
+      { mkrhs "()" 2, None }
+  | LPAREN functor_arg_name COLON module_type RPAREN
+      { mkrhs $2 2, Some $4 }
+;
+
+functor_arg_name:
+    UIDENT     { $1 }
+  | UNDERSCORE { "_" }
+;
+
+functor_args:
+    functor_args functor_arg
+      { $2 :: $1 }
+  | functor_arg
+      { [ $1 ] }
+;
+
 module_expr:
     mod_longident
       { mkmod(Pmod_ident (mkrhs $1 1)) }
@@ -540,10 +561,12 @@ module_expr:
       { mkmod(Pmod_structure($2)) }
   | STRUCT structure error
       { unclosed "struct" 1 "end" 3 }
-  | FUNCTOR LPAREN UIDENT COLON module_type RPAREN MINUSGREATER module_expr
-      { mkmod(Pmod_functor(mkrhs $3 3, $5, $8)) }
+  | FUNCTOR functor_args MINUSGREATER module_expr
+      { List.fold_left (fun acc (n, t) -> mkmod(Pmod_functor(n, t, acc))) $4 $2 }
   | module_expr LPAREN module_expr RPAREN
       { mkmod(Pmod_apply($1, $3)) }
+  | module_expr LPAREN RPAREN
+      { mkmod(Pmod_apply($1, mkmod (Pmod_structure []))) }
   | module_expr LPAREN module_expr error
       { unclosed "(" 2 ")" 4 }
   | LPAREN module_expr COLON module_type RPAREN
@@ -595,7 +618,8 @@ structure_item:
     LET ext_attributes rec_flag let_bindings
       {
         match $4 with
-          [ {pvb_pat = { ppat_desc = Ppat_any; ppat_loc = _ }; pvb_expr = exp; pvb_attributes = attrs}] ->
+          [ {pvb_pat = { ppat_desc = Ppat_any; ppat_loc = _ };
+             pvb_expr = exp; pvb_attributes = attrs}] ->
             let exp = wrap_exp_attrs exp $2 in
             mkstr(Pstr_eval (exp, attrs))
         | l ->
@@ -605,7 +629,8 @@ structure_item:
             | None, _ :: _ -> not_expecting 2 "attribute"
             end
       }
-  | EXTERNAL val_ident COLON core_type EQUAL primitive_declaration post_item_attributes
+  | EXTERNAL val_ident COLON core_type EQUAL primitive_declaration
+    post_item_attributes
       { mkstr
           (Pstr_primitive (Val.mk (mkrhs $2 2) $4
                              ~prim:$6 ~attrs:$7 ~loc:(symbol_rloc ()))) }
@@ -620,9 +645,11 @@ structure_item:
   | MODULE REC module_bindings
       { mkstr(Pstr_recmodule(List.rev $3)) }
   | MODULE TYPE ident post_item_attributes
-      { mkstr(Pstr_modtype (Mtd.mk (mkrhs $3 3) ~attrs:$4)) }
+      { mkstr(Pstr_modtype (Mtd.mk (mkrhs $3 3)
+                              ~attrs:$4 ~loc:(symbol_rloc()))) }
   | MODULE TYPE ident EQUAL module_type post_item_attributes
-      { mkstr(Pstr_modtype (Mtd.mk (mkrhs $3 3) ~typ:$5 ~attrs:$6)) }
+      { mkstr(Pstr_modtype (Mtd.mk (mkrhs $3 3)
+                              ~typ:$5 ~attrs:$6 ~loc:(symbol_rloc()))) }
   | OPEN override_flag mod_longident post_item_attributes
       { mkstr(Pstr_open ($2, mkrhs $3 3, $4)) }
   | CLASS class_declarations
@@ -639,8 +666,8 @@ module_binding_body:
       { $2 }
   | COLON module_type EQUAL module_expr
       { mkmod(Pmod_constraint($4, $2)) }
-  | LPAREN UIDENT COLON module_type RPAREN module_binding_body
-      { mkmod(Pmod_functor(mkrhs $2 2, $4, $6)) }
+  | functor_arg module_binding_body
+      { mkmod(Pmod_functor(fst $1, snd $1, $2)) }
 ;
 module_bindings:
     module_binding                        { [$1] }
@@ -648,7 +675,7 @@ module_bindings:
 ;
 module_binding:
     UIDENT module_binding_body post_item_attributes
-    { Mb.mk (mkrhs $1 1) $2 ~attrs:$3 }
+    { Mb.mk (mkrhs $1 1) $2 ~attrs:$3 ~loc:(symbol_rloc ()) }
 ;
 
 /* Module types */
@@ -660,13 +687,15 @@ module_type:
       { mkmty(Pmty_signature $2) }
   | SIG signature error
       { unclosed "sig" 1 "end" 3 }
-  | FUNCTOR LPAREN UIDENT COLON module_type RPAREN MINUSGREATER module_type
+  | FUNCTOR functor_args MINUSGREATER module_type
       %prec below_WITH
-      { mkmty(Pmty_functor(mkrhs $3 3, $5, $8)) }
+      { List.fold_left (fun acc (n, t) -> mkmty(Pmty_functor(n, t, acc))) $4 $2 }
   | module_type WITH with_constraints
       { mkmty(Pmty_with($1, List.rev $3)) }
   | MODULE TYPE OF module_expr %prec below_LBRACKETAT
       { mkmty(Pmty_typeof $4) }
+  | LPAREN MODULE mod_longident RPAREN
+      { mkmty (Pmty_alias (mkrhs $3 3)) }
   | LPAREN module_type RPAREN
       { $2 }
   | LPAREN module_type error
@@ -692,7 +721,8 @@ signature_item:
     VAL val_ident COLON core_type post_item_attributes
       { mksig(Psig_value
                 (Val.mk (mkrhs $2 2) $4 ~attrs:$5 ~loc:(symbol_rloc()))) }
-  | EXTERNAL val_ident COLON core_type EQUAL primitive_declaration post_item_attributes
+  | EXTERNAL val_ident COLON core_type EQUAL primitive_declaration
+    post_item_attributes
       { mksig(Psig_value
                 (Val.mk (mkrhs $2 2) $4 ~prim:$6 ~attrs:$7
                    ~loc:(symbol_rloc()))) }
@@ -701,13 +731,23 @@ signature_item:
   | EXCEPTION exception_declaration
       { mksig(Psig_exception $2) }
   | MODULE UIDENT module_declaration post_item_attributes
-      { mksig(Psig_module (Md.mk (mkrhs $2 2) $3 ~attrs:$4)) }
+      { mksig(Psig_module (Md.mk (mkrhs $2 2)
+                             $3 ~attrs:$4 ~loc:(symbol_rloc()))) }
+  | MODULE UIDENT EQUAL mod_longident post_item_attributes
+      { mksig(Psig_module (Md.mk (mkrhs $2 2)
+                             (Mty.alias ~loc:(rhs_loc 4) (mkrhs $4 4))
+                             ~attrs:$5
+                             ~loc:(symbol_rloc())
+                          )) }
   | MODULE REC module_rec_declarations
       { mksig(Psig_recmodule (List.rev $3)) }
   | MODULE TYPE ident post_item_attributes
-      { mksig(Psig_modtype (Mtd.mk (mkrhs $3 3) ~attrs:$4)) }
+      { mksig(Psig_modtype (Mtd.mk (mkrhs $3 3)
+                              ~attrs:$4 ~loc:(symbol_rloc()))) }
   | MODULE TYPE ident EQUAL module_type post_item_attributes
-      { mksig(Psig_modtype (Mtd.mk (mkrhs $3 3) ~typ:$5 ~attrs:$6)) }
+      { mksig(Psig_modtype (Mtd.mk (mkrhs $3 3) ~typ:$5
+                              ~loc:(symbol_rloc())
+                              ~attrs:$6)) }
   | OPEN override_flag mod_longident post_item_attributes
       { mksig(Psig_open ($2, mkrhs $3 3, $4)) }
   | INCLUDE module_type post_item_attributes %prec below_WITH
@@ -724,7 +764,9 @@ module_declaration:
     COLON module_type
       { $2 }
   | LPAREN UIDENT COLON module_type RPAREN module_declaration
-      { mkmty(Pmty_functor(mkrhs $2 2, $4, $6)) }
+      { mkmty(Pmty_functor(mkrhs $2 2, Some $4, $6)) }
+  | LPAREN RPAREN module_declaration
+      { mkmty(Pmty_functor(mkrhs "()" 1, None, $3)) }
 ;
 module_rec_declarations:
     module_rec_declaration                              { [$1] }
@@ -732,7 +774,7 @@ module_rec_declarations:
 ;
 module_rec_declaration:
     UIDENT COLON module_type post_item_attributes
-    { Md.mk (mkrhs $1 1) $3 ~attrs:$4 }
+    { Md.mk (mkrhs $1 1) $3 ~attrs:$4 ~loc:(symbol_rloc()) }
 ;
 
 /* Class expressions */
@@ -1048,8 +1090,8 @@ expr:
       { mkexp_attrs (Pexp_ifthenelse($3, $5, None)) $2 }
   | WHILE ext_attributes seq_expr DO seq_expr DONE
       { mkexp_attrs (Pexp_while($3, $5)) $2 }
-  | FOR ext_attributes val_ident EQUAL seq_expr direction_flag seq_expr DO seq_expr DONE
-      { mkexp_attrs(Pexp_for(mkrhs $3 3, $5, $7, $6, $9)) $2 }
+  | FOR ext_attributes pattern EQUAL seq_expr direction_flag seq_expr DO seq_expr DONE
+      { mkexp_attrs(Pexp_for($3, $5, $7, $6, $9)) $2 }
   | expr COLONCOLON expr
       { mkexp_cons (rhs_loc 2) (ghexp(Pexp_tuple[$1;$3])) (symbol_rloc()) }
   | LPAREN COLONCOLON RPAREN LPAREN expr COMMA expr RPAREN
@@ -1165,16 +1207,31 @@ simple_expr:
       { let (exten, fields) = $2 in mkexp (Pexp_record(fields, exten)) }
   | LBRACE record_expr error
       { unclosed "{" 1 "}" 3 }
+  | mod_longident DOT LBRACE record_expr RBRACE
+      { let (exten, fields) = $4 in
+        let rec_exp = mkexp(Pexp_record(fields, exten)) in
+        mkexp(Pexp_open(Fresh, mkrhs $1 1, rec_exp)) }
+  | mod_longident DOT LBRACE record_expr error
+      { unclosed "{" 3 "}" 5 }
   | LBRACKETBAR expr_semi_list opt_semi BARRBRACKET
       { mkexp (Pexp_array(List.rev $2)) }
   | LBRACKETBAR expr_semi_list opt_semi error
       { unclosed "[|" 1 "|]" 4 }
   | LBRACKETBAR BARRBRACKET
       { mkexp (Pexp_array []) }
+  | mod_longident DOT LBRACKETBAR expr_semi_list opt_semi BARRBRACKET
+      { mkexp(Pexp_open(Fresh, mkrhs $1 1, mkexp(Pexp_array(List.rev $4)))) }
+  | mod_longident DOT LBRACKETBAR expr_semi_list opt_semi error
+      { unclosed "[|" 3 "|]" 6 }
   | LBRACKET expr_semi_list opt_semi RBRACKET
       { reloc_exp (mktailexp (rhs_loc 4) (List.rev $2)) }
   | LBRACKET expr_semi_list opt_semi error
       { unclosed "[" 1 "]" 4 }
+  | mod_longident DOT LBRACKET expr_semi_list opt_semi RBRACKET
+      { let list_exp = reloc_exp (mktailexp (rhs_loc 6) (List.rev $4)) in
+        mkexp(Pexp_open(Fresh, mkrhs $1 1, list_exp)) }
+  | mod_longident DOT LBRACKET expr_semi_list opt_semi error
+      { unclosed "[" 3 "]" 6 }
   | PREFIXOP simple_expr
       { mkexp(Pexp_apply(mkoperator $1 1, ["",$2])) }
   | BANG simple_expr
@@ -1187,6 +1244,10 @@ simple_expr:
       { unclosed "{<" 1 ">}" 4 }
   | LBRACELESS GREATERRBRACE
       { mkexp (Pexp_override [])}
+  | mod_longident DOT LBRACELESS field_expr_list opt_semi GREATERRBRACE
+      { mkexp(Pexp_open(Fresh, mkrhs $1 1, mkexp (Pexp_override(List.rev $4)))) }
+  | mod_longident DOT LBRACELESS field_expr_list opt_semi error
+      { unclosed "{<" 3 ">}" 6 }
   | simple_expr SHARP label
       { mkexp(Pexp_send($1, $3)) }
   | LPAREN MODULE module_expr RPAREN
@@ -1196,6 +1257,12 @@ simple_expr:
                                 ghtyp (Ptyp_package $5))) }
   | LPAREN MODULE module_expr COLON error
       { unclosed "(" 1 ")" 5 }
+  | mod_longident DOT LPAREN MODULE module_expr COLON package_type RPAREN
+      { mkexp(Pexp_open(Fresh, mkrhs $1 1,
+        mkexp (Pexp_constraint (ghexp (Pexp_pack $5),
+                                ghtyp (Ptyp_package $7))))) }
+  | mod_longident DOT LPAREN MODULE module_expr COLON error
+      { unclosed "(" 3 ")" 7 }
   | extension
       { mkexp (Pexp_extension $1) }
 ;
@@ -1248,6 +1315,8 @@ let_binding_:
         (ghpat(Ppat_constraint(mkpatvar $1 1, poly)), exp) }
   | pattern EQUAL seq_expr
       { ($1, $3) }
+  | simple_pattern_not_ident COLON core_type EQUAL seq_expr
+      { (ghpat(Ppat_constraint($1, $3)), $5) }
 ;
 fun_binding:
     strict_binding
@@ -1356,6 +1425,9 @@ pattern:
 simple_pattern:
     val_ident %prec below_EQUAL
       { mkpat(Ppat_var (mkrhs $1 1)) }
+  | simple_pattern_not_ident { $1 }
+;
+simple_pattern_not_ident:
   | UNDERSCORE
       { mkpat(Ppat_any) }
   | signed_constant

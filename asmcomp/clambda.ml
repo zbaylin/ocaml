@@ -18,9 +18,23 @@ open Lambda
 
 type function_label = string
 
+type ustructured_constant =
+  | Uconst_float of string
+  | Uconst_int32 of int32
+  | Uconst_int64 of int64
+  | Uconst_nativeint of nativeint
+  | Uconst_block of int * uconstant list
+  | Uconst_float_array of string list
+  | Uconst_string of string
+
+and uconstant =
+  | Uconst_ref of string * ustructured_constant
+  | Uconst_int of int
+  | Uconst_ptr of int
+
 type ulambda =
     Uvar of Ident.t
-  | Uconst of structured_constant * string option
+  | Uconst of uconstant
   | Udirect_apply of function_label * ulambda list * Debuginfo.t
   | Ugeneric_apply of ulambda * ulambda list * Debuginfo.t
   | Uclosure of ufunction list * ulambda list
@@ -29,6 +43,7 @@ type ulambda =
   | Uletrec of (Ident.t * ulambda) list * ulambda
   | Uprim of primitive * ulambda list * Debuginfo.t
   | Uswitch of ulambda * ulambda_switch
+  | Ustringswitch of ulambda * (string * ulambda) list * ulambda
   | Ustaticfail of int * ulambda list
   | Ucatch of int * Ident.t list * ulambda * ulambda
   | Utrywith of ulambda * Ident.t * ulambda
@@ -67,5 +82,5 @@ type value_approximation =
     Value_closure of function_description * value_approximation
   | Value_tuple of value_approximation array
   | Value_unknown
-  | Value_integer of int
-  | Value_constptr of int
+  | Value_const of uconstant
+  | Value_global_field of string * int

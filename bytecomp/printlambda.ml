@@ -255,12 +255,15 @@ let rec lam ppf = function
             fprintf ppf ")" in
       fprintf ppf "@[<2>(function%a@ %a)@]" pr_params params lam body
   | Llet(str, id, arg, body) ->
+      let kind = function
+        Alias -> "a" | Strict -> "" | StrictOpt -> "o" | Variable -> "v" in
       let rec letbody = function
         | Llet(str, id, arg, body) ->
-            fprintf ppf "@ @[<2>%a@ %a@]" Ident.print id lam arg;
+            fprintf ppf "@ @[<2>%a =%s@ %a@]" Ident.print id (kind str) lam arg;
             letbody body
         | expr -> expr in
-      fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a@ %a@]" Ident.print id lam arg;
+      fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a =%s@ %a@]"
+        Ident.print id (kind str) lam arg;
       let expr = letbody body in
       fprintf ppf ")@]@ %a)@]" lam expr
   | Lletrec(id_arg_list, body) ->
@@ -296,11 +299,22 @@ let rec lam ppf = function
             if !spc then fprintf ppf "@ " else spc := true;
             fprintf ppf "@[<hv 1>default:@ %a@]" lam l
         end in
-
       fprintf ppf
        "@[<1>(%s %a@ @[<v 0>%a@])@]"
        (match sw.sw_failaction with None -> "switch*" | _ -> "switch")
        lam larg switch sw
+  | Lstringswitch(arg, cases, default) ->
+      let switch ppf cases =
+        let spc = ref false in
+        List.iter
+         (fun (s, l) ->
+           if !spc then fprintf ppf "@ " else spc := true;
+           fprintf ppf "@[<hv 1>case \"%s\":@ %a@]" (String.escaped s) lam l)
+          cases;
+        if !spc then fprintf ppf "@ " else spc := true;
+        fprintf ppf "@[<hv 1>default:@ %a@]" lam default in
+      fprintf ppf
+       "@[<1>(stringswitch %a@ @[<v 0>%a@])@]" lam arg switch cases
   | Lstaticraise (i, ls)  ->
       let lams ppf largs =
         List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in

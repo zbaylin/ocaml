@@ -11,12 +11,9 @@
 #########################################################################
 
 # The lexer generator
-
-include ../config/Makefile
-
 CAMLC=../boot/ocamlrun ../boot/ocamlc -strict-sequence -nostdlib -I ../boot
 CAMLOPT=../boot/ocamlrun ../ocamlopt -nostdlib -I ../stdlib
-COMPFLAGS=-w +33..39 -warn-error A
+COMPFLAGS=-w +33..39 -warn-error A -bin-annot
 CAMLYACC=../boot/ocamlyacc
 YACCFLAGS=-v
 CAMLLEX=../boot/ocamlrun ../boot/ocamllex

@@ -12,12 +12,13 @@
 
 include ../config/Makefile
 
-CAMLC=../boot/ocamlrun ../boot/ocamlc -strict-sequence -nostdlib -I ../boot
-CAMLOPT=../boot/ocamlrun ../ocamlopt -nostdlib -I ../stdlib
+CAMLRUN=../boot/ocamlrun
+CAMLC=$(CAMLRUN) ../boot/ocamlc -strict-sequence -nostdlib -I ../boot
+CAMLOPT=$(CAMLRUN) ../ocamlopt -nostdlib -I ../stdlib
 CAMLLEX=$(CAMLRUN) ../boot/ocamllex
 INCLUDES=-I ../utils -I ../parsing -I ../typing -I ../bytecomp -I ../asmcomp \
 	 -I ../driver -I ../toplevel
-COMPFLAGS= -w +33..39 -warn-error A $(INCLUDES)
+COMPFLAGS= -w +32..39 -warn-error A $(INCLUDES)
 LINKFLAGS=$(INCLUDES)
 
 all: ocamldep ocamlprof ocamlcp ocamloptp ocamlmktop ocamlmklib dumpobj \
@@ -92,17 +93,8 @@ clean::
 
 # To help building mixed-mode libraries (OCaml + C)
 
-ocamlmklib: myocamlbuild_config.cmo ocamlmklib.cmo
-	$(CAMLC) $(LINKFLAGS) -o ocamlmklib myocamlbuild_config.cmo \
-	         ocamlmklib.cmo
-
-ocamlmklib.cmo: myocamlbuild_config.cmi
-
-myocamlbuild_config.cmi: myocamlbuild_config.cmo
-
-myocamlbuild_config.ml: ../config/Makefile ../build/mk_shell_and_ocamlbuild_config.sh
-	../build/mk_shell_and_ocamlbuild_config.sh
-	cp ../myocamlbuild_config.ml .
+ocamlmklib: ocamlmklibconfig.cmo ocamlmklib.cmo
+	$(CAMLC) $(LINKFLAGS) -o ocamlmklib ocamlmklibconfig.cmo ocamlmklib.cmo
 
 install::
 	cp ocamlmklib $(BINDIR)/ocamlmklib$(EXE)
@@ -110,22 +102,23 @@ install::
 clean::
 	rm -f ocamlmklib
 
-ocamlmklib.ml: ocamlmklib.mlp ../config/Makefile
-	echo '(* THIS FILE IS GENERATED FROM ocamlmklib.mlp *)' >ocamlmklib.ml
-	sed -e "s|%%BINDIR%%|$(BINDIR)|" \
-	    -e "s|%%SUPPORTS_SHARED_LIBRARIES%%|$(SUPPORTS_SHARED_LIBRARIES)|" \
-	    -e "s|%%MKSHAREDLIB%%|$(MKSHAREDLIB)|" \
-	    -e "s|%%BYTECCRPATH%%|$(BYTECCRPATH)|" \
-	    -e "s|%%NATIVECCRPATH%%|$(NATIVECCRPATH)|" \
-	    -e "s|%%MKSHAREDLIBRPATH%%|$(MKSHAREDLIBRPATH)|" \
-	    -e "s|%%RANLIB%%|$(RANLIB)|" \
-	  ocamlmklib.mlp >> ocamlmklib.ml
+ocamlmklibconfig.ml: ../config/Makefile
+	(echo 'let bindir = "$(BINDIR)"'; \
+         echo 'let ext_lib = "$(EXT_LIB)"'; \
+         echo 'let ext_dll = "$(EXT_DLL)"'; \
+         echo 'let supports_shared_libraries = $(SUPPORTS_SHARED_LIBRARIES)';\
+         echo 'let mkdll = "$(MKDLL)"'; \
+         echo 'let byteccrpath = "$(BYTECCRPATH)"'; \
+         echo 'let nativeccrpath = "$(NATIVECCRPATH)"'; \
+         echo 'let mksharedlibrpath = "$(MKSHAREDLIBRPATH)"'; \
+         echo 'let toolpref = "$(TOOLPREF)"'; \
+         sed -n -e 's/^#ml //p' ../config/Makefile) \
+        > ocamlmklibconfig.ml
 
-beforedepend:: ocamlmklib.ml
+beforedepend:: ocamlmklibconfig.ml
 
 clean::
-	rm -f ocamlmklib.ml
-
+	rm -f ocamlmklibconfig.ml
 
 # Converter olabl/ocaml 2.99 to ocaml 3
 
@@ -283,9 +276,9 @@ objinfo_helper$(EXE): objinfo_helper.c ../config/s.h
 	$(BYTECC) -o objinfo_helper$(EXE) $(BYTECCCOMPOPTS) \
           objinfo_helper.c $(LIBBFD_LINK)
 
-OBJINFO=../utils/misc.cmo ../utils/config.cmo \
-        ../utils/warnings.cmo ../parsing/location.cmo \
-        ../typing/cmi_format.cmo ../bytecomp/bytesections.cmo \
+OBJINFO=../compilerlibs/ocamlcommon.cma \
+        ../compilerlibs/ocamlbytecomp.cma \
+        ../asmcomp/printclambda.cmo \
         objinfo.cmo
 
 objinfo: objinfo_helper$(EXE) $(OBJINFO)

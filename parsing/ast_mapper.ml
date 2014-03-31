@@ -12,6 +12,10 @@
 
 (* A generic Parsetree mapping class *)
 
+;; [@@warning "+9"]
+  (* Ensure that record patterns don't miss any field. *)
+
+
 open Parsetree
 open Ast_helper
 open Location
@@ -159,9 +163,11 @@ module MT = struct
     let attrs = sub.attributes sub attrs in
     match desc with
     | Pmty_ident s -> ident ~loc ~attrs (map_loc sub s)
+    | Pmty_alias s -> alias ~loc ~attrs (map_loc sub s)
     | Pmty_signature sg -> signature ~loc ~attrs (sub.signature sub sg)
     | Pmty_functor (s, mt1, mt2) ->
-        functor_ ~loc ~attrs (map_loc sub s) (sub.module_type sub mt1)
+        functor_ ~loc ~attrs (map_loc sub s)
+          (Misc.may_map (sub.module_type sub) mt1)
           (sub.module_type sub mt2)
     | Pmty_with (mt, l) ->
         with_ ~loc ~attrs (sub.module_type sub mt)
@@ -213,7 +219,8 @@ module M = struct
     | Pmod_ident x -> ident ~loc ~attrs (map_loc sub x)
     | Pmod_structure str -> structure ~loc ~attrs (sub.structure sub str)
     | Pmod_functor (arg, arg_ty, body) ->
-        functor_ ~loc ~attrs (map_loc sub arg) (sub.module_type sub arg_ty)
+        functor_ ~loc ~attrs (map_loc sub arg)
+          (Misc.may_map (sub.module_type sub) arg_ty)
           (sub.module_expr sub body)
     | Pmod_apply (m1, m2) ->
         apply ~loc ~attrs (sub.module_expr sub m1) (sub.module_expr sub m2)
@@ -292,8 +299,8 @@ module E = struct
     | Pexp_sequence (e1, e2) ->
         sequence ~loc ~attrs (sub.expr sub e1) (sub.expr sub e2)
     | Pexp_while (e1, e2) -> while_ ~loc ~attrs (sub.expr sub e1) (sub.expr sub e2)
-    | Pexp_for (id, e1, e2, d, e3) ->
-        for_ ~loc ~attrs (map_loc sub id) (sub.expr sub e1) (sub.expr sub e2) d
+    | Pexp_for (p, e1, e2, d, e3) ->
+        for_ ~loc ~attrs (sub.pat sub p) (sub.expr sub e1) (sub.expr sub e2) d
           (sub.expr sub e3)
     | Pexp_coerce (e, t1, t2) ->
         coerce ~loc ~attrs (sub.expr sub e) (map_opt (sub.typ sub) t1)
@@ -425,15 +432,18 @@ let default_mapper =
     signature_item = MT.map_signature_item;
     module_type = MT.map;
     with_constraint = MT.map_with_constraint;
-    class_declaration = (fun this -> CE.class_infos this (this.class_expr this));
+    class_declaration =
+      (fun this -> CE.class_infos this (this.class_expr this));
     class_expr = CE.map;
     class_field = CE.map_field;
     class_structure = CE.map_structure;
     class_type = CT.map;
     class_type_field = CT.map_field;
     class_signature = CT.map_signature;
-    class_type_declaration = (fun this -> CE.class_infos this (this.class_type this));
-    class_description = (fun this -> CE.class_infos this (this.class_type this));
+    class_type_declaration =
+      (fun this -> CE.class_infos this (this.class_type this));
+    class_description =
+      (fun this -> CE.class_infos this (this.class_type this));
     type_declaration = T.map_type_declaration;
     type_kind = T.map_type_kind;
     typ = T.map;
@@ -453,26 +463,28 @@ let default_mapper =
     expr = E.map;
 
     module_declaration =
-      (fun this {pmd_name; pmd_type; pmd_attributes} ->
+      (fun this {pmd_name; pmd_type; pmd_attributes; pmd_loc} ->
          Md.mk
            (map_loc this pmd_name)
            (this.module_type this pmd_type)
            ~attrs:(this.attributes this pmd_attributes)
+           ~loc:(this.location this pmd_loc)
       );
 
     module_type_declaration =
-      (fun this {pmtd_name; pmtd_type; pmtd_attributes} ->
-         {
-           pmtd_name = map_loc this pmtd_name;
-           pmtd_type =map_opt (this.module_type this) pmtd_type;
-           pmtd_attributes = this.attributes this pmtd_attributes;
-         }
+      (fun this {pmtd_name; pmtd_type; pmtd_attributes; pmtd_loc} ->
+         Mtd.mk
+           (map_loc this pmtd_name)
+           ?typ:(map_opt (this.module_type this) pmtd_type)
+           ~attrs:(this.attributes this pmtd_attributes)
+           ~loc:(this.location this pmtd_loc)
       );
 
     module_binding =
-      (fun this {pmb_name; pmb_expr; pmb_attributes} ->
+      (fun this {pmb_name; pmb_expr; pmb_attributes; pmb_loc} ->
          Mb.mk (map_loc this pmb_name) (this.module_expr this pmb_expr)
            ~attrs:(this.attributes this pmb_attributes)
+           ~loc:(this.location this pmb_loc)
       );
 
     value_binding =

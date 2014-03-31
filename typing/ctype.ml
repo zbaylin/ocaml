@@ -717,6 +717,15 @@ let get_level env p =
       (* no newtypes in predef *)
       Path.binding_time p
 
+let rec normalize_package_path env p =
+  let t =
+    try (Env.find_modtype p env).mtd_type
+    with Not_found -> None
+  in
+  match t with
+  | Some (Mty_ident p) -> normalize_package_path env p
+  | Some (Mty_signature _ | Mty_functor _ | Mty_alias _) | None -> p
+
 let rec update_level env level ty =
   let ty = repr ty in
   if ty.level > level then begin
@@ -737,8 +746,11 @@ let rec update_level env level ty =
           if level < get_level env p then raise (Unify [(ty, newvar2 level)]);
           iter_type_expr (update_level env level) ty
         end
-    | Tpackage (p, _, _) when level < get_level env p ->
-        raise (Unify [(ty, newvar2 level)])
+    | Tpackage (p, nl, tl) when level < get_level env p ->
+        let p' = normalize_package_path env p in
+        if Path.same p p' then raise (Unify [(ty, newvar2 level)]);
+        log_type ty; ty.desc <- Tpackage (p', nl, tl);
+        update_level env level ty
     | Tobject(_, ({contents=Some(p, tl)} as nm))
       when level < get_level env p ->
         set_name nm None;
@@ -1049,6 +1061,8 @@ let rec copy ?env ?partial ?keep_names ty =
       end;
     t
 
+let simple_copy t = copy t
+
 (**** Variants of instantiations ****)
 
 let gadt_env env =
@@ -1074,7 +1088,7 @@ let instance_def sch =
 
 let instance_list env schl =
   let env = gadt_env env in
-  let tyl = List.map (copy ?env) schl in
+  let tyl = List.map (fun t -> copy ?env t) schl in
   cleanup_types ();
   tyl
 
@@ -1125,35 +1139,35 @@ let instance_constructor ?in_pattern cstr =
       List.iter process cstr.cstr_existentials
   end;
   let ty_res = copy cstr.cstr_res in
-  let ty_args = List.map copy cstr.cstr_args in
+  let ty_args = List.map simple_copy  cstr.cstr_args in
   cleanup_types ();
   (ty_args, ty_res)
 
 let instance_parameterized_type ?keep_names sch_args sch =
-  let ty_args = List.map (copy ?keep_names) sch_args in
+  let ty_args = List.map (fun t -> copy ?keep_names t) sch_args in
   let ty = copy sch in
   cleanup_types ();
   (ty_args, ty)
 
 let instance_parameterized_type_2 sch_args sch_lst sch =
-  let ty_args = List.map copy sch_args in
-  let ty_lst = List.map copy sch_lst in
+  let ty_args = List.map simple_copy sch_args in
+  let ty_lst = List.map simple_copy sch_lst in
   let ty = copy sch in
   cleanup_types ();
   (ty_args, ty_lst, ty)
 
 let instance_declaration decl =
   let decl =
-    {decl with type_params = List.map copy decl.type_params;
-     type_manifest = may_map copy decl.type_manifest;
+    {decl with type_params = List.map simple_copy decl.type_params;
+     type_manifest = may_map simple_copy decl.type_manifest;
      type_kind = match decl.type_kind with
      | Type_abstract -> Type_abstract
      | Type_variant cl ->
          Type_variant (
            List.map
              (fun c ->
-                {c with cd_args=List.map copy c.cd_args;
-                        cd_res=may_map copy c.cd_res})
+                {c with cd_args=List.map simple_copy c.cd_args;
+                        cd_res=may_map simple_copy c.cd_res})
              cl)
      | Type_record (fl, rr) ->
          Type_record (
@@ -1170,7 +1184,7 @@ let instance_class params cty =
   let rec copy_class_type =
     function
       Cty_constr (path, tyl, cty) ->
-        Cty_constr (path, List.map copy tyl, copy_class_type cty)
+        Cty_constr (path, List.map simple_copy tyl, copy_class_type cty)
     | Cty_signature sign ->
         Cty_signature
           {csig_self = copy sign.csig_self;
@@ -1178,11 +1192,12 @@ let instance_class params cty =
              Vars.map (function (m, v, ty) -> (m, v, copy ty)) sign.csig_vars;
            csig_concr = sign.csig_concr;
            csig_inher =
-             List.map (fun (p,tl) -> (p, List.map copy tl)) sign.csig_inher}
+             List.map (fun (p,tl) -> (p, List.map simple_copy tl))
+               sign.csig_inher}
     | Cty_arrow (l, ty, cty) ->
         Cty_arrow (l, copy ty, copy_class_type cty)
   in
-  let params' = List.map copy params in
+  let params' = List.map simple_copy params in
   let cty' = copy_class_type cty in
   cleanup_types ();
   (params', cty')
@@ -1379,7 +1394,7 @@ let expand_abbrev_gen kind find_type_expansion env ty =
           ty
       | None ->
           let (params, body, lv) =
-            try find_type_expansion level path env with Not_found ->
+            try find_type_expansion path env with Not_found ->
               raise Cannot_expand
           in
           (* prerr_endline
@@ -1405,10 +1420,9 @@ let expand_abbrev_gen kind find_type_expansion env ty =
   | _ ->
       assert false
 
-(* inside objects and variants we do not want to
-   use local constraints *)
+(* Expand respecting privacy *)
 let expand_abbrev ty =
-  expand_abbrev_gen Public (fun level -> Env.find_type_expansion ~level) ty
+  expand_abbrev_gen Public Env.find_type_expansion ty
 
 (* Expand once the head of a type *)
 let expand_head_once env ty =
@@ -1486,7 +1500,7 @@ let rec extract_concrete_typedecl env ty =
    the private abbreviation. *)
 
 let expand_abbrev_opt =
-  expand_abbrev_gen Private (fun level -> Env.find_type_expansion_opt)
+  expand_abbrev_gen Private Env.find_type_expansion_opt
 
 let try_expand_once_opt env ty =
   let ty = repr ty in
@@ -1991,8 +2005,11 @@ let rec mcomp type_pairs env t1 t2 =
         | (Tconstr (p, _, _), _) | (_, Tconstr (p, _, _)) ->
             let decl = Env.find_type p env in
             if non_aliasable p decl then raise (Unify [])
+        (*
         | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2)) when n1 = n2 ->
             mcomp_list type_pairs env tl1 tl2
+        *)
+        | (Tpackage _, Tpackage _) -> ()
         | (Tvariant row1, Tvariant row2) ->
             mcomp_row type_pairs env row1 row2
         | (Tobject (fi1, _), Tobject (fi2, _)) ->
@@ -2168,6 +2185,68 @@ let order_type_pair t1 t2 =
 
 let add_type_equality t1 t2 =
   TypePairs.add unify_eq_set (order_type_pair t1 t2) ()
+
+let eq_package_path env p1 p2 =
+  Path.same p1 p2 ||
+  Path.same (normalize_package_path env p1) (normalize_package_path env p2)
+
+let nondep_type' = ref (fun _ _ _ -> assert false)
+let package_subtype = ref (fun _ _ _ _ _ _ _ -> assert false)
+
+let rec concat_longident lid1 =
+  let open Longident in
+  function
+    Lident s -> Ldot (lid1, s)
+  | Ldot (lid2, s) -> Ldot (concat_longident lid1 lid2, s)
+  | Lapply (lid2, lid) -> Lapply (concat_longident lid1 lid2, lid)
+
+let nondep_instance env level id ty =
+  let ty = !nondep_type' env id ty in
+  if level = generic_level then duplicate_type ty else
+  let old = !current_level in
+  current_level := level;
+  let ty = instance env ty in
+  current_level := old;
+  ty
+
+(* Find the type paths nl1 in the module type mty2, and add them to the
+   list (nl2, tl2). raise Not_found if impossible *)
+let complete_type_list ?(allow_absent=false) env nl1 lv2 mty2 nl2 tl2 =
+  let id2 = Ident.create "Pkg" in
+  let env' = Env.add_module id2 mty2 env in
+  let rec complete nl1 ntl2 =
+    match nl1, ntl2 with
+      [], _ -> ntl2
+    | n :: nl, (n2, _ as nt2) :: ntl' when n >= n2 ->
+        nt2 :: complete (if n = n2 then nl else nl1) ntl'
+    | n :: nl, _ ->
+        try
+          let (_, decl) =
+            Env.lookup_type (concat_longident (Longident.Lident "Pkg") n) env'
+          in
+          match decl with
+            {type_arity = 0; type_kind = Type_abstract;
+             type_private = Public; type_manifest = Some t2} ->
+               (n, nondep_instance env' lv2 id2 t2) :: complete nl ntl2
+          | {type_arity = 0; type_kind = Type_abstract;
+             type_private = Public; type_manifest = None} when allow_absent ->
+               complete nl ntl2
+          | _ -> raise Exit
+        with
+        | Not_found when allow_absent -> complete nl ntl2
+        | Exit -> raise Not_found
+  in
+  complete nl1 (List.combine nl2 tl2)
+
+(* raise Not_found rather than Unify if the module types are incompatible *)
+let unify_package env unify_list lv1 p1 n1 tl1 lv2 p2 n2 tl2 =
+  let ntl2 = complete_type_list env n1 lv2 (Mty_ident p2) n2 tl2
+  and ntl1 = complete_type_list env n2 lv2 (Mty_ident p1) n1 tl1 in
+  unify_list (List.map snd ntl1) (List.map snd ntl2);
+  if eq_package_path env p1 p2 
+  || !package_subtype env p1 n1 tl1 p2 n2 tl2
+  && !package_subtype env p2 n2 tl2 p1 n1 tl1 then () else raise Not_found
+
 
 let unify_eq env t1 t2 =
   t1 == t2 ||
@@ -2397,11 +2476,14 @@ and unify3 env t1 t1' t2 t2' =
           unify env t1 t2
       | (Tpoly (t1, tl1), Tpoly (t2, tl2)) ->
           enter_poly !env univar_pairs t1 tl1 t2 tl2 (unify env)
-      | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2)) when n1 = n2 ->
-          if Path.same p1 p2 then unify_list env tl1 tl2 else
-          if !umode = Expression then raise (Unify []) else begin
+      | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2)) ->
+          begin try
+            unify_package !env (unify_list env)
+              t1.level p1 n1 tl1 t2.level p2 n2 tl2
+          with Not_found ->
+            if !umode = Expression then raise (Unify []);
             List.iter (reify env) (tl1 @ tl2);
-            if !generate_equations then List.iter2 (mcomp !env) tl1 tl2
+            (* if !generate_equations then List.iter2 (mcomp !env) tl1 tl2 *)
           end
       | (_, _) ->
           raise (Unify [])
@@ -2828,9 +2910,12 @@ let rec moregen inst_nongen type_pairs env t1 t2 =
           | (Tconstr (p1, tl1, _), Tconstr (p2, tl2, _))
                 when Path.same p1 p2 ->
               moregen_list inst_nongen type_pairs env tl1 tl2
-          | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2))
-            when Path.same p1 p2 && n1 = n2 ->
-              moregen_list inst_nongen type_pairs env tl1 tl2
+          | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2)) ->
+              begin try
+                unify_package env (moregen_list inst_nongen type_pairs env)
+                  t1'.level p1 n1 tl1 t2'.level p2 n2 tl2
+              with Not_found -> raise (Unify [])
+              end
           | (Tvariant row1, Tvariant row2) ->
               moregen_row inst_nongen type_pairs env row1 row2
           | (Tobject (fi1, nm1), Tobject (fi2, nm2)) ->
@@ -3096,9 +3181,12 @@ let rec eqtype rename type_pairs subst env t1 t2 =
           | (Tconstr (p1, tl1, _), Tconstr (p2, tl2, _))
                 when Path.same p1 p2 ->
               eqtype_list rename type_pairs subst env tl1 tl2
-          | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2))
-            when Path.same p1 p2 && n1 = n2 ->
-              eqtype_list rename type_pairs subst env tl1 tl2
+          | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2)) ->
+              begin try
+                unify_package env (eqtype_list rename type_pairs subst env)
+                  t1'.level p1 n1 tl1 t2'.level p2 n2 tl2
+              with Not_found -> raise (Unify [])
+              end
           | (Tvariant row1, Tvariant row2) ->
               eqtype_row rename type_pairs subst env row1 row2
           | (Tobject (fi1, nm1), Tobject (fi2, nm2)) ->
@@ -3838,11 +3926,36 @@ let rec subtype_rec env trace t1 t2 cstrs =
         with Unify _ ->
           (trace, t1, t2, !univar_pairs)::cstrs
         end
-    | (Tpackage (p1, nl1, tl1), Tpackage (p2, nl2, tl2))
-      when Path.same p1 p2 && included nl2 nl1 ->
+(*    | (Tpackage (p1, nl1, tl1), Tpackage (p2, nl2, tl2))
+      when eq_package_path env p1 p2 && included nl2 nl1 ->
         List.map2 (fun t1 t2 -> (trace, t1, t2, !univar_pairs))
           (extract_assoc nl2 nl1 tl1) tl2
-        @ cstrs
+        @ cstrs *)
+    | (Tpackage (p1, nl1, tl1), Tpackage (p2, nl2, tl2)) ->
+        begin try
+          let ntl1 = complete_type_list env nl2 t1.level (Mty_ident p1) nl1 tl1
+          and ntl2 = complete_type_list env nl1 t2.level (Mty_ident p2) nl2 tl2
+              ~allow_absent:true in
+          let cstrs' =
+            List.map
+              (fun (n2,t2) -> (trace, List.assoc n2 ntl1, t2, !univar_pairs))
+              ntl2
+          in
+          if eq_package_path env p1 p2 then cstrs' @ cstrs
+          else begin
+            (* need to check module subtyping *)
+            let snap = Btype.snapshot () in
+            try
+              List.iter (fun (_, t1, t2, _) -> unify env t1 t2) cstrs';
+              if !package_subtype env p1 nl1 tl1 p2 nl2 tl2
+              then (Btype.backtrack snap; cstrs' @ cstrs)
+              else raise (Unify [])
+            with Unify _ ->
+              Btype.backtrack snap; raise Not_found
+          end
+        with Not_found ->
+          (trace, t1, t2, !univar_pairs)::cstrs
+        end
     | (_, _) ->
         (trace, t1, t2, !univar_pairs)::cstrs
   end
@@ -4097,8 +4210,10 @@ let rec nondep_type_rec env id ty =
             end
           else
             Tconstr(p, List.map (nondep_type_rec env id) tl, ref Mnil)
-      | Tpackage(p, _, _) when Path.isfree id p ->
-          raise Not_found
+      | Tpackage(p, nl, tl) when Path.isfree id p ->
+          let p' = normalize_package_path env p in
+          if Path.isfree id p' then raise Not_found;
+          Tpackage (p', nl, List.map (nondep_type_rec env id) tl)
       | Tobject (t1, name) ->
           Tobject (nondep_type_rec env id t1,
                  ref (match !name with
@@ -4140,6 +4255,8 @@ let nondep_type env id ty =
   with Not_found ->
     clear_hash ();
     raise Not_found
+
+let () = nondep_type' := nondep_type
 
 let unroll_abbrev id tl ty =
   let ty = repr ty and path = Path.Pident id in

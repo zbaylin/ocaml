@@ -40,14 +40,14 @@ default:
 all-cygwin: findlib ounit res pcre react ocamltext ocamlssl camlzip cryptokit \
             sqlite ocgi xmllight configfile xmlm omake \
             camomile zen vsyml extlib fileutils ocamlify ocamlmod \
-            calendar dbm ocamlscript
+            calendar dbm ocamlscript coq compcert
 
 all-macos: findlib lablgtk ocamlgraph ounit res pcre core react ocamltext \
            ocamlssl lwt camlzip cryptokit sqlite menhir hevea \
            unison ocgi xmllight configfile xmlm lablgtkextras sks omake \
            altergo boomerang camomile zen vsyml ocamlnet extlib fileutils \
            odn ocamlify expect ocamlmod oasis calendar camlimages advi \
-           dbm ocsigen ocamlscript framac
+           dbm ocsigen ocamlscript coq compcert framac
 
 platform:
 	case `uname -s` in \
@@ -1018,7 +1018,7 @@ all: zarith
 ALTERGO=alt-ergo-0.95.2
 ${ALTERGO}.tar.gz:
 	${WGET} http://alt-ergo.ocamlpro.com/download_manager.php?target=$@ -O $@
-altergo: ${ALTERGO}.tar.gz ocamlgraph
+altergo: ${ALTERGO}.tar.gz ocamlgraph zarith
 	printf "%s " "$@" >/dev/tty
 	test -d ${PREFIX}
 	rm -rf ${ALTERGO}
@@ -1595,29 +1595,27 @@ all: camlpdf
 # 	rm -f ${GENEWEB}.tgz
 # all: geneweb
 
-# disabled: Cannot find file q_coqast.cmo
-# maybe because of the camlp5 -> camlp4 switch
 # http://coq.inria.fr/download
-# COQ=coq-8.4pl1
-# ${COQ}.tar.gz:
-# 	${WGET} http://coq.inria.fr/distrib/V8.4pl1/files/$@
-# coq: ${COQ}.tar.gz
-# 	printf "%s " "$@" >/dev/tty
-# 	test -d ${PREFIX}
-# 	rm -rf ${COQ}
-# 	tar zxf ${COQ}.tar.gz
-# 	./Patcher.sh ${COQ}
-# 	( cd ${COQ} && \
-# 	  export PATH=${PREFIX}/bin:$$PATH && \
-# 	  ./configure -prefix ${PREFIX} -with-doc no && \
-# 	  ${MAKE} world && \
-# 	  ${MAKE} install )
-# 	echo ${VERSION} >$@
-# clean::
-# 	rm -rf ${COQ} coq
-# distclean::
-# 	rm -f ${COQ}.tar.gz
-# all: coq
+COQ=coq-8.4pl2
+${COQ}.tar.gz:
+	${WGET} http://coq.inria.fr/distrib/V8.4pl2/files/$@
+coq: ${COQ}.tar.gz
+	printf "%s " "$@" >/dev/tty
+	test -d ${PREFIX}
+	rm -rf ${COQ}
+	tar zxf ${COQ}.tar.gz
+	./Patcher.sh ${COQ}
+	( cd ${COQ} && \
+	  export PATH=${PREFIX}/bin:$$PATH && \
+	  ./configure -prefix ${PREFIX} -with-doc no && \
+	  ${MAKE} world && \
+	  ${MAKE} install )
+	echo ${VERSION} >$@
+clean::
+	rm -rf ${COQ} coq
+distclean::
+	rm -f ${COQ}.tar.gz
+all: coq
 
 # http://code.google.com/p/bitstring/
 
@@ -1645,34 +1643,33 @@ distclean::
 	rm -f ${BITSTRING}.tar.gz
 all: bitstring
 
-# disabled: depends on coq
 # http://compcert.inria.fr
-# COMPCERT=compcert-1.13
-# ${COMPCERT}.tgz:
-# 	${WGET} http://compcert.inria.fr/release/$@
-# compcert: ${COMPCERT}.tgz coq bitstring
-# 	printf "%s " "$@" >/dev/tty
-# 	test -d ${PREFIX}
-# 	rm -rf ${COMPCERT}
-# 	tar zxf ${COMPCERT}.tgz
-# 	./Patcher.sh ${COMPCERT}
-# 	( cd ${COMPCERT} && \
-# 	  export PATH=${PREFIX}/bin:$$PATH && \
-# 	  sh ./configure -prefix ${PREFIX} ppc-linux && \
-# 	  ${MAKE} all && \
-# 	  ${MAKE} install )
-# 	echo ${VERSION} >$@
-# clean::
-# 	rm -rf ${COMPCERT} compcert
-# distclean::
-# 	rm -f ${COMPCERT}.tgz
-# all: compcert
+COMPCERT=compcert-1.13
+${COMPCERT}.tgz:
+	${WGET} http://compcert.inria.fr/release/$@
+compcert: ${COMPCERT}.tgz coq bitstring
+	printf "%s " "$@" >/dev/tty
+	test -d ${PREFIX}
+	rm -rf ${COMPCERT}
+	tar zxf ${COMPCERT}.tgz
+	./Patcher.sh ${COMPCERT}
+	( cd ${COMPCERT} && \
+	  export PATH=${PREFIX}/bin:$$PATH && \
+	  sh ./configure -prefix ${PREFIX} ppc-linux && \
+	  ${MAKE} all && \
+	  ${MAKE} install )
+	echo ${VERSION} >$@
+clean::
+	rm -rf ${COMPCERT} compcert
+distclean::
+	rm -f ${COMPCERT}.tgz
+all: compcert
 
 # http://frama-c.com/
 FRAMAC=frama-c-Oxygen-20120901
 ${FRAMAC}.tar.gz:
 	${WGET} http://frama-c.com/download/$@
-framac: ${FRAMAC}.tar.gz lablgtk ocamlgraph altergo  # coq removed (disabled)
+framac: ${FRAMAC}.tar.gz lablgtk ocamlgraph altergo coq
 	printf "%s " "$@" >/dev/tty
 	test -d ${PREFIX}
 	rm -rf ${FRAMAC}

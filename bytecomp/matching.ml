@@ -443,7 +443,9 @@ let pretty_precompiled_res first nexts =
 
 
 
-(* A slight attempt to identify semantically equivalent lambda-expressions *)
+(* A slight attempt to identify semantically equivalent lambda-expressions,
+   We could have used Lambda.same, but our goal here is also to
+   find alpha-equivalent (simple) terms *)
 exception Not_simple
 
 let rec raw_rec env : lambda -> lambda = function
@@ -454,6 +456,8 @@ let rec raw_rec env : lambda -> lambda = function
       end
   | Lprim (Pfield i,args) ->
       Lprim (Pfield i, List.map (raw_rec env) args)
+  | Lconst  (Const_base (Const_string _)) ->
+      raise Not_simple (* do not share strings *)
   | Lconst _ as l -> l
   | Lstaticraise (i,args) ->
         Lstaticraise (i, List.map (raw_rec env) args)
@@ -1648,10 +1652,110 @@ let divide_array kind ctx pm =
     (make_array_matching kind)
     (=) get_key_array get_args_array ctx pm
 
+(*
+   Specific string test sequence
+   Will be called by the bytecode compiler, from bytegen.ml.   
+   The strategy is first dichotomic search (we perform 3-way tests
+   with compare_string), then sequence of equality tests
+   when there are less then T=strings_test_threshold static strings to match.
+
+  Increasing T entails (slightly) less code, decreasing T
+  (slightly) favors runtime speed.
+  T=8 looks a decent tradeoff.
+*)
+
+(* Utlities *)
+
+let strings_test_threshold = 8
+
+let prim_string_notequal =
+  Pccall{prim_name = "caml_string_notequal";
+         prim_arity = 2; prim_alloc = false;
+         prim_native_name = ""; prim_native_float = false}
+
+let prim_string_compare =
+  Pccall{prim_name = "caml_string_compare";
+         prim_arity = 2; prim_alloc = false;
+         prim_native_name = ""; prim_native_float = false}
+
+let bind_sw arg k = match arg with
+| Lvar _ -> k arg
+| _ ->
+    let id = Ident.create "switch" in
+    Llet (Strict,id,arg,k (Lvar id))
+    
+  
+(* Sequential equality tests *)
+
+let make_test_sequence arg sw d =
+  bind_sw arg
+    (fun arg ->
+      List.fold_right
+        (fun (s,lam) k ->
+          Lifthenelse
+            (Lprim
+               (prim_string_notequal,
+                [arg; Lconst (Const_immstring s)]),
+             k,lam))
+        sw d)
+
+let catch_sw d k = match d with
+| Lstaticraise (_,[]) -> k d
+| _ ->
+    let e = next_raise_count () in
+    Lstaticcatch (k (Lstaticraise (e,[])),(e,[]),d)
+
+let rec split k xs = match xs with
+| [] -> assert false
+| x0::xs ->
+    if k <= 1 then [],x0,xs
+    else
+      let xs,y0,ys = split (k-2) xs in
+      x0::xs,y0,ys
+
+let zero_lam  = Lconst (Const_base (Const_int 0))
+
+let tree_way_test arg lt eq gt =
+  Lifthenelse
+    (Lprim (Pintcomp Clt,[arg;zero_lam]),lt,
+     Lifthenelse(Lprim (Pintcomp Clt,[zero_lam;arg]),gt,eq))
+
+(* Dichotomic tree *)
+
+let rec do_make_tree arg sw d =
+  let len = List.length sw in
+  if len <= strings_test_threshold then make_test_sequence arg sw d
+  else
+    let lt,(s,act),gt = split len sw in
+    bind_sw
+      (Lprim
+         (prim_string_compare,
+          [arg; Lconst (Const_immstring s)];))
+      (fun r ->
+        tree_way_test r
+          (do_make_tree arg lt d)
+          act
+          (do_make_tree arg gt d))
+           
+(* Entry point *)
+let expand_stringswitch arg sw d =
+  bind_sw arg (fun arg -> catch_sw d (fun d -> do_make_tree arg sw d))
+
+(*************************************)
 (* To combine sub-matchings together *)
+(*************************************)
+
+(* Note: dichotomic search requires sorted input with no duplicates *)
+let rec uniq_lambda_list sw = match sw with
+  | []|[_] -> sw
+  | (c1,_ as p1)::((c2,_)::sw2 as sw1) ->
+      if const_compare c1 c2 = 0 then uniq_lambda_list (p1::sw2)
+      else p1::uniq_lambda_list sw1
 
 let sort_lambda_list l =
-  List.sort (fun (x,_) (y,_) -> const_compare x y) l
+  let l =
+    List.stable_sort (fun (x,_) (y,_) -> const_compare x y) l in
+  uniq_lambda_list l
 
 let rec cut n l =
   if n = 0 then [],l
@@ -1693,13 +1797,6 @@ let make_test_sequence fail tst lt_tst arg const_lambda_list =
 
 
 let make_offset x arg = if x=0 then arg else Lprim(Poffsetint(x), [arg])
-
-
-
-let prim_string_notequal =
-  Pccall{prim_name = "caml_string_notequal";
-          prim_arity = 2; prim_alloc = false;
-          prim_native_name = ""; prim_native_float = false}
 
 let rec explode_inter offset i j act k =
   if i <= j then
@@ -2097,8 +2194,22 @@ let combine_constant arg cst partial ctx def
           (fun i -> Lconst (Const_base (Const_int i)))
           fail arg 0 255 int_lambda_list
     | Const_string _ ->
-        make_test_sequence
-          fail prim_string_notequal Pignore arg const_lambda_list
+(* Note as the bytecode compiler may resort to dichotmic search,
+   the clauses of strinswitch  are sorted with duplicate removed.
+   This partly applies to the native code compiler, which requires
+   no duplicates *)   
+        let fail,const_lambda_list = match fail with
+        | Some fail -> fail,sort_lambda_list const_lambda_list
+        | None ->
+            let cls,(_,lst) = Misc.split_last const_lambda_list in
+            lst,sort_lambda_list cls in
+        let sw =
+          List.map
+            (fun (c,act) -> match c with
+            | Const_string (s,_) -> s,act
+            | _ -> assert false)
+            const_lambda_list in
+        Lstringswitch (arg,sw,fail)
     | Const_float _ ->
         make_test_sequence
           fail
@@ -2163,7 +2274,9 @@ let combine_constructor arg ex_pat cstr partial ctx def
                 else Lprim(Pfield 0, [arg])
               in
               Lifthenelse(Lprim(Pintcomp Ceq,
-                                [slot; transl_path path]),
+                                [slot;
+                                 transl_path ~loc:ex_pat.pat_loc
+                                   ex_pat.pat_env path]),
                           act, rem)
           | _ -> assert false)
         tests default in
@@ -2734,7 +2847,7 @@ let partial_function loc () =
   (* [Location.get_pos_info] is too expensive *)
   let (fname, line, char) = Location.get_pos_info loc.Location.loc_start in
   Lprim(Praise Raise_regular, [Lprim(Pmakeblock(0, Immutable),
-          [transl_path Predef.path_match_failure;
+          [transl_normal_path Predef.path_match_failure;
            Lconst(Const_block(0,
               [Const_base(Const_string (fname, None));
                Const_base(Const_int line);

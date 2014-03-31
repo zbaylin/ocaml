@@ -86,13 +86,21 @@ let is_float env ty =
 
 (* Determine if a type definition defines a fixed type. (PW) *)
 let is_fixed_type sd =
-  (match sd.ptype_manifest with
-   | Some { ptyp_desc =
-       (Ptyp_variant _|Ptyp_object _|Ptyp_class _|Ptyp_alias
-         ({ptyp_desc = Ptyp_variant _|Ptyp_object _|Ptyp_class _},_)) } -> true
-   | _ -> false) &&
-  sd.ptype_kind = Ptype_abstract &&
-  sd.ptype_private = Private
+  let rec has_row_var sty =
+    match sty.ptyp_desc with
+      Ptyp_alias (sty, _) -> has_row_var sty
+    | Ptyp_class _
+    | Ptyp_object (_, Open)
+    | Ptyp_variant (_, Open, _)
+    | Ptyp_variant (_, Closed, Some _) -> true
+    | _ -> false
+  in
+  match sd.ptype_manifest with
+    None -> false
+  | Some sty ->
+      sd.ptype_kind = Ptype_abstract &&
+      sd.ptype_private = Private &&
+      has_row_var sty
 
 (* Set the row variable in a fixed type *)
 let set_fixed_row env loc p decl =
@@ -573,7 +581,13 @@ let compute_variance env visited vari ty =
               Rpresent (Some ty) ->
                 compute_same ty
             | Reither (_, tyl, _, _) ->
-                List.iter compute_same tyl
+                let open Variance in
+                let upper =
+                  List.fold_left (fun s f -> set f true s)
+                    null [May_pos; May_neg; May_weak]
+                in
+                let v = inter vari upper in
+                List.iter (compute_variance_rec v) tyl
             | _ -> ())
           row.row_fields;
         compute_same row.row_more
@@ -709,7 +723,7 @@ let compute_variance_gadt env check (required, loc as rloc) decl
       | {desc=Tconstr (path, tyl, _)} ->
           (* let tyl = List.map (Ctype.expand_head env) tyl in *)
           let tyl = List.map Ctype.repr tyl in
-          let fvl = List.map Ctype.free_variables tyl in
+          let fvl = List.map (Ctype.free_variables ?env:None) tyl in
           let _ =
             List.fold_left2
               (fun (fv1,fv2) ty (c,n,i) ->
@@ -1129,7 +1143,8 @@ let transl_with_constraint env id row_path orig_decl sdecl =
   let decl =
     { type_params = params;
       type_arity = List.length params;
-      type_kind = if arity_ok then orig_decl.type_kind else Type_abstract;
+      type_kind =
+        if arity_ok && man <> None then orig_decl.type_kind else Type_abstract;
       type_private = priv;
       type_manifest = man;
       type_variance = [];

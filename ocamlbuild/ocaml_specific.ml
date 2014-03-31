@@ -269,7 +269,7 @@ rule "ocaml: cmo* -> cma"
 
 rule "ocaml C stubs: clib & (o|obj)* -> (a|lib) & (so|dll)"
   ~prods:(["%(path:<**/>)lib%(libname:<*> and not <*.*>)"-.-ext_lib] @
-          if Ocamlbuild_Myocamlbuild_config.supports_shared_libraries then
+          if Ocamlbuild_config.supports_shared_libraries then
             ["%(path:<**/>)dll%(libname:<*> and not <*.*>)"-.-ext_dll]
           else
 	    [])
@@ -573,7 +573,9 @@ let () =
     (* tags package(X), predicate(X) and syntax(X) *)
     List.iter begin fun tags ->
       pflag tags "package" (fun pkg -> S [A "-package"; A pkg]);
-      pflag tags "predicate" (fun pkg -> S [A "-predicates"; A pkg]);
+      if not (List.mem "ocamldep" tags) then
+        (* PR#6184: 'ocamlfind ocamldep' does not support -predicate *)
+        pflag tags "predicate" (fun pkg -> S [A "-predicates"; A pkg]);
       pflag tags "syntax" (fun pkg -> S [A "-syntax"; A pkg])
     end all_tags
   end else begin

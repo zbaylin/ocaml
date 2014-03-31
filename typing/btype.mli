@@ -39,9 +39,12 @@ val newmarkedgenvar: unit -> type_expr
         (* Return a fresh marked generic variable *)
 *)
 
+(**** Types ****)
+
 val is_Tvar: type_expr -> bool
 val is_Tunivar: type_expr -> bool
 val dummy_method: label
+val default_mty: module_type option -> module_type
 
 val repr: type_expr -> type_expr
         (* Return the canonical representative of a type. *)
@@ -86,6 +89,24 @@ val iter_row: (type_expr -> unit) -> row_desc -> unit
         (* Iteration on types in a row *)
 val iter_abbrev: (type_expr -> unit) -> abbrev_memo -> unit
         (* Iteration on types in an abbreviation list *)
+
+type type_iterators =
+  { it_signature: type_iterators -> signature -> unit;
+    it_signature_item: type_iterators -> signature_item -> unit;
+    it_value_description: type_iterators -> value_description -> unit;
+    it_type_declaration: type_iterators -> type_declaration -> unit;
+    it_exception_declaration: type_iterators -> exception_declaration -> unit;
+    it_module_declaration: type_iterators -> module_declaration -> unit;
+    it_modtype_declaration: type_iterators -> modtype_declaration -> unit;
+    it_class_declaration: type_iterators -> class_declaration -> unit;
+    it_class_type_declaration: type_iterators -> class_type_declaration -> unit;
+    it_module_type: type_iterators -> module_type -> unit;
+    it_class_type: type_iterators -> class_type -> unit;
+    it_type_kind: type_iterators -> type_kind -> unit;
+    it_type_expr: type_iterators -> type_expr -> unit;
+    it_path: Path.t -> unit; }
+val type_iterators : type_iterators
+        (* Iteration on arbitrary type information *)
 
 val copy_type_desc:
     ?keep_names:bool -> (type_expr -> type_expr) -> type_desc -> type_desc

@@ -12,10 +12,13 @@
 #########################################################################
 
 include ../config/Makefile
-CAMLC=$(CAMLC_BIN)
-COMPFLAGS=-strict-sequence -w +33..39 -g -warn-error A -nostdlib
-CAMLOPT=$(CAMLOPT_BIN)
-OPTCOMPFLAGS=-warn-error A -nostdlib -g
+RUNTIME=../boot/ocamlrun
+COMPILER=../ocamlc
+CAMLC=$(RUNTIME) $(COMPILER)
+COMPFLAGS=-strict-sequence -w +33..39 -g -warn-error A -bin-annot -nostdlib
+OPTCOMPILER=../ocamlopt
+CAMLOPT=$(RUNTIME) $(OPTCOMPILER)
+OPTCOMPFLAGS=-warn-error A -nostdlib -g -bin-annot
 CAMLDEP=../boot/ocamlrun ../tools/ocamldep
 
 OBJS=pervasives.cmo $(OTHERS)
@@ -74,6 +77,12 @@ clean::
 
 .ml.p.cmx:
 	$(CAMLOPT) $(OPTCOMPFLAGS) `./Compflags $@` -p -c -o $*.p.cmx $<
+
+# Dependencies on the compiler
+$(OBJS) std_exit.cmo: $(COMPILER)
+$(OBJS:.cmo=.cmi) std_exit.cmi: $(COMPILER)
+$(OBJS:.cmo=.cmx) std_exit.cmx: $(OPTCOMPILER)
+$(OBJS:.cmo=.p.cmx) std_exit.p.cmx: $(OPTCOMPILER)
 
 # Dependencies on Pervasives (not tracked by ocamldep)
 $(OBJS) std_exit.cmo: pervasives.cmi

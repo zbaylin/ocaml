@@ -26,10 +26,7 @@ open Primitives
 
 let line_buffer = Lexing.from_function read_user_input
 
-let rec loop ppf =
-  line_loop ppf line_buffer;
-  if !loaded && (not (yes_or_no "The program is running. Quit anyway")) then
-    loop ppf
+let rec loop ppf = line_loop ppf line_buffer
 
 let current_duration = ref (-1L)
 
@@ -170,10 +167,12 @@ let speclist = [
       "<count>  Set max number of checkpoints kept";
    "-cd", Arg.String set_directory,
       "<dir>  Change working directory";
-   "-emacs", Arg.Set emacs,
-      "For running the debugger under emacs";
+   "-emacs", Arg.Tuple [Arg.Set emacs; Arg.Set machine_readable],
+      "For running the debugger under emacs; implies -machine-readable";
    "-I", Arg.String add_include,
       "<dir>  Add <dir> to the list of include directories";
+   "-machine-readable", Arg.Set machine_readable,
+      "Print information in a format more suitable for machines";
    "-s", Arg.String set_socket,
       "<filename>  Set the name of the communication socket";
    "-version", Arg.Unit print_version,

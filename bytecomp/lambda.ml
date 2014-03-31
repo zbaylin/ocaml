@@ -166,6 +166,7 @@ type lambda =
   | Lletrec of (Ident.t * lambda) list * lambda
   | Lprim of primitive * lambda list
   | Lswitch of lambda * lambda_switch
+  | Lstringswitch of lambda * (string * lambda) list * lambda
   | Lstaticraise of int * lambda list
   | Lstaticcatch of lambda * (int * Ident.t list) * lambda
   | Ltrywith of lambda * Ident.t * lambda
@@ -204,6 +205,8 @@ let rec same l1 l2 =
   match (l1, l2) with
   | Lvar v1, Lvar v2 ->
       Ident.same v1 v2
+  | Lconst (Const_base (Const_string _)), _ ->
+      false  (* do not share strings *)
   | Lconst c1, Lconst c2 ->
       c1 = c2
   | Lapply(a1, bl1, _), Lapply(a2, bl2, _) ->
@@ -258,10 +261,10 @@ and sameswitch sw1 sw2 =
     | (Some a1, Some a2) -> same a1 a2
     | _ -> false)
 
-let name_lambda arg fn =
+let name_lambda strict arg fn =
   match arg with
     Lvar id -> fn id
-  | _ -> let id = Ident.create "let" in Llet(Strict, id, arg, fn id)
+  | _ -> let id = Ident.create "let" in Llet(strict, id, arg, fn id)
 
 let name_lambda_list args fn =
   let rec name_list names = function
@@ -295,6 +298,10 @@ let iter f = function
       | None -> ()
       | Some l -> f l
       end
+  | Lstringswitch (arg,cases,default) ->
+      f arg ;
+      List.iter (fun (_,act) -> f act) cases ;
+      f default
   | Lstaticraise (_,args) ->
       List.iter f args
   | Lstaticcatch(e1, (_,vars), e2) ->
@@ -345,7 +352,7 @@ let free_ids get l =
     | Lassign(id, e) ->
         fv := IdentSet.add id !fv
     | Lvar _ | Lconst _ | Lapply _
-    | Lprim _ | Lswitch _ | Lstaticraise _
+    | Lprim _ | Lswitch _ | Lstringswitch _ | Lstaticraise _
     | Lifthenelse _ | Lsequence _ | Lwhile _
     | Lsend _ | Levent _ | Lifused _ -> ()
   in free l; !fv
@@ -383,13 +390,18 @@ let rec patch_guarded patch = function
 
 (* Translate an access path *)
 
-let rec transl_path = function
+let rec transl_normal_path = function
     Pident id ->
       if Ident.global id then Lprim(Pgetglobal id, []) else Lvar id
   | Pdot(p, s, pos) ->
-      Lprim(Pfield pos, [transl_path p])
+      Lprim(Pfield pos, [transl_normal_path p])
   | Papply(p1, p2) ->
       fatal_error "Lambda.transl_path"
+
+(* Translation of value identifiers *)
+
+let transl_path ?(loc=Location.none) env path =
+  transl_normal_path (Env.normalize_path (Some loc) env path) 
 
 (* Compile a sequence of expressions *)
 
@@ -423,7 +435,9 @@ let subst_lambda s lam =
                          match sw.sw_failaction with
                          | None -> None
                          | Some l -> Some (subst l)})
-
+  | Lstringswitch (arg,cases,default) ->
+      Lstringswitch
+        (subst arg,List.map subst_strcase cases,subst default)
   | Lstaticraise (i,args) ->  Lstaticraise (i, List.map subst args)
   | Lstaticcatch(e1, io, e2) -> Lstaticcatch(subst e1, io, subst e2)
   | Ltrywith(e1, exn, e2) -> Ltrywith(subst e1, exn, subst e2)
@@ -438,6 +452,7 @@ let subst_lambda s lam =
   | Lifused (v, e) -> Lifused (v, subst e)
   and subst_decl (id, exp) = (id, subst exp)
   and subst_case (key, case) = (key, subst case)
+  and subst_strcase (key, case) = (key, subst case)
   in subst lam
 
 

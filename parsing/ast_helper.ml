@@ -125,6 +125,7 @@ module Mty = struct
   let attr d a = {d with pmty_attributes = d.pmty_attributes @ [a]}
 
   let ident ?loc ?attrs a = mk ?loc ?attrs (Pmty_ident a)
+  let alias ?loc ?attrs a = mk ?loc ?attrs (Pmty_alias a)
   let signature ?loc ?attrs a = mk ?loc ?attrs (Pmty_signature a)
   let functor_ ?loc ?attrs a b c = mk ?loc ?attrs (Pmty_functor (a, b, c))
   let with_ ?loc ?attrs a b = mk ?loc ?attrs (Pmty_with (a, b))
@@ -263,29 +264,32 @@ module Val = struct
 end
 
 module Md = struct
-  let mk ?(attrs = []) name typ =
+  let mk ?(loc = !default_loc) ?(attrs = []) name typ =
     {
      pmd_name = name;
      pmd_type = typ;
      pmd_attributes = attrs;
+     pmd_loc = loc;
     }
 end
 
 module Mtd = struct
-  let mk ?(attrs = []) ?typ name =
+  let mk ?(loc = !default_loc) ?(attrs = []) ?typ name =
     {
      pmtd_name = name;
      pmtd_type = typ;
      pmtd_attributes = attrs;
+     pmtd_loc = loc;
     }
 end
 
 module Mb = struct
-  let mk ?(attrs = []) name expr =
+  let mk ?(loc = !default_loc) ?(attrs = []) name expr =
     {
      pmb_name = name;
      pmb_expr = expr;
      pmb_attributes = attrs;
+     pmb_loc = loc;
     }
 end
 
@@ -370,7 +374,7 @@ module Convenience = struct
   let may_tuple tup = function
     | [] -> None
     | [x] -> Some x
-    | l -> Some (tup l)
+    | l -> Some (tup ?loc:None ?attrs:None l)
 
   let lid s = mkloc (Longident.parse s) !default_loc
   let tuple l = Exp.tuple l
