@@ -192,7 +192,7 @@ val name_of_input : in_channel -> string;;
 *)
 
 val stdib : in_channel;;
-(** A deprecated alias for [Scanning.stdin], the scanning buffer reading from
+(** @deprecated Use [Scanning.stdin], the scanning buffer reading from
     [Pervasives.stdin].
 *)
 

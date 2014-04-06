@@ -17,6 +17,7 @@
 
 (** {6 Classes} *)
 
+type string = _constant _string
 type tag
 type label
 type table

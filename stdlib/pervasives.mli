@@ -22,7 +22,6 @@
    name, without prefixing them by [Pervasives].
 *)
 
-
 (** {6 Exceptions} *)
 
 external raise : exn -> 'a = "%raise"

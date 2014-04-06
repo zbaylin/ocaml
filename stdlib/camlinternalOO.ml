@@ -13,6 +13,8 @@
 
 open Obj
 
+type string = _constant _string
+
 (**** Object representation ****)
 
 external set_id: 'a -> 'a = "caml_set_oo_id" "noalloc"

@@ -51,24 +51,24 @@
 
  *)
 
-external length : string -> int = "%string_length"
+external length : 'a _string -> int = "%string_length"
 (** Return the length (number of characters) of the given string. *)
 
-external get : string -> int -> char = "%string_safe_get"
+external get : 'a _string -> int -> char = "%string_safe_get"
 (** [String.get s n] returns character number [n] in string [s].
    You can also write [s.[n]] instead of [String.get s n].
 
    Raise [Invalid_argument] if [n] not a valid character number in [s]. *)
 
 
-external set : string -> int -> char -> unit = "%string_safe_set"
+external set : bytearray -> int -> char -> unit = "%string_safe_set"
 (** [String.set s n c] modifies string [s] in place,
    replacing the character number [n] by [c].
    You can also write [s.[n] <- c] instead of [String.set s n c].
 
    Raise [Invalid_argument] if [n] is not a valid character number in [s]. *)
 
-external create : int -> string = "caml_create_string"
+external create : int -> bytearray = "caml_create_string"
 (** [String.create n] returns a fresh string of length [n].
    The string initially contains arbitrary characters.
 
@@ -80,10 +80,10 @@ val make : int -> char -> string
 
    Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.*)
 
-val copy : string -> string
+val copy : 'a _string -> string
 (** Return a copy of the given string. *)
 
-val sub : string -> int -> int -> string
+val sub : 'a _string -> int -> int -> string
 (** [String.sub s start len] returns a fresh string of length [len],
    containing the substring of [s] that starts at position [start] and
    has length [len].
@@ -91,14 +91,14 @@ val sub : string -> int -> int -> string
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid substring of [s]. *)
 
-val fill : string -> int -> int -> char -> unit
+val fill : bytearray -> int -> int -> char -> unit
 (** [String.fill s start len c] modifies string [s] in place,
    replacing [len] characters by [c], starting at [start].
 
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid substring of [s]. *)
 
-val blit : string -> int -> string -> int -> int -> unit
+val blit : 'a _string -> int -> bytearray -> int -> int -> unit
 (** [String.blit src srcoff dst dstoff len] copies [len] characters
    from string [src], starting at character number [srcoff], to
    string [dst], starting at character number [dstoff]. It works
@@ -109,23 +109,23 @@ val blit : string -> int -> string -> int -> int -> unit
    designate a valid substring of [src], or if [dstoff] and [len]
    do not designate a valid substring of [dst]. *)
 
-val concat : string -> string list -> string
+val concat : 'a _string -> 'b _string list -> string
 (** [String.concat sep sl] concatenates the list of strings [sl],
    inserting the separator string [sep] between each. *)
 
-val iter : (char -> unit) -> string -> unit
+val iter : (char -> unit) -> 'a _string -> unit
 (** [String.iter f s] applies function [f] in turn to all
    the characters of [s].  It is equivalent to
    [f s.[0]; f s.[1]; ...; f s.[String.length s - 1]; ()]. *)
 
-val iteri : (int -> char -> unit) -> string -> unit
+val iteri : (int -> char -> unit) -> 'a _string -> unit
 (** Same as {!String.iter}, but the
    function is applied to the index of the element as first argument
    (counting from 0), and the character itself as second argument.
    @since 4.00.0
 *)
 
-val map : (char -> char) -> string -> string
+val map : (char -> char) -> 'a _string -> string
 (** [String.map f s] applies function [f] in turn to all
    the characters of [s] and stores the results in a new string that
    is returned.
@@ -146,19 +146,19 @@ val escaped : string -> string
    character in the argument, return the original string itself,
    not a copy. Its inverse function is Scanf.unescaped. *)
 
-val index : string -> char -> int
+val index : 'a _string -> char -> int
 (** [String.index s c] returns the character number of the first
    occurrence of character [c] in string [s].
 
    Raise [Not_found] if [c] does not occur in [s]. *)
 
-val rindex : string -> char -> int
+val rindex : 'a _string -> char -> int
 (** [String.rindex s c] returns the character number of the last
    occurrence of character [c] in string [s].
 
    Raise [Not_found] if [c] does not occur in [s]. *)
 
-val index_from : string -> int -> char -> int
+val index_from : 'a _string -> int -> char -> int
 (** [String.index_from s i c] returns the character number of the
    first occurrence of character [c] in string [s] after position [i].
    [String.index s c] is equivalent to [String.index_from s 0 c].
@@ -166,7 +166,7 @@ val index_from : string -> int -> char -> int
    Raise [Invalid_argument] if [i] is not a valid position in [s].
    Raise [Not_found] if [c] does not occur in [s] after position [i]. *)
 
-val rindex_from : string -> int -> char -> int
+val rindex_from : 'a _string -> int -> char -> int
 (** [String.rindex_from s i c] returns the character number of the
    last occurrence of character [c] in string [s] before position [i+1].
    [String.rindex s c] is equivalent to
@@ -175,11 +175,11 @@ val rindex_from : string -> int -> char -> int
    Raise [Invalid_argument] if [i+1] is not a valid position in [s].
    Raise [Not_found] if [c] does not occur in [s] before position [i+1]. *)
 
-val contains : string -> char -> bool
+val contains : 'a _string -> char -> bool
 (** [String.contains s c] tests if character [c]
    appears in the string [s]. *)
 
-val contains_from : string -> int -> char -> bool
+val contains_from : 'a _string -> int -> char -> bool
 (** [String.contains_from s start c] tests if character [c]
    appears in [s] after position [start].
    [String.contains s c] is equivalent to
@@ -187,27 +187,31 @@ val contains_from : string -> int -> char -> bool
 
    Raise [Invalid_argument] if [start] is not a valid position in [s]. *)
 
-val rcontains_from : string -> int -> char -> bool
+val rcontains_from : 'a _string -> int -> char -> bool
 (** [String.rcontains_from s stop c] tests if character [c]
    appears in [s] before position [stop+1].
 
    Raise [Invalid_argument] if [stop < 0] or [stop+1] is not a valid
    position in [s]. *)
 
-val uppercase : string -> string
+val uppercase : 'a _string -> string
 (** Return a copy of the argument, with all lowercase letters
    translated to uppercase, including accented letters of the ISO
-   Latin-1 (8859-1) character set. *)
+   Latin-1 (8859-1) character set.
+   @deprecated You should use one of the available UTF-8 libraries
+   rather than work with Latin-1. *)
 
-val lowercase : string -> string
+val lowercase : 'a _string -> string
 (** Return a copy of the argument, with all uppercase letters
    translated to lowercase, including accented letters of the ISO
-   Latin-1 (8859-1) character set. *)
+   Latin-1 (8859-1) character set.
+   @deprecated You should use one of the available UTF-8 libraries
+   rather than work with Latin-1. *)
 
-val capitalize : string -> string
+val capitalize : 'a _string -> string
 (** Return a copy of the argument, with the first character set to uppercase. *)
 
-val uncapitalize : string -> string
+val uncapitalize : 'a _string -> string
 (** Return a copy of the argument, with the first character set to lowercase. *)
 
 type t = string
@@ -223,9 +227,10 @@ val compare: t -> t -> int
 
 (* The following is for system use only. Do not call directly. *)
 
-external unsafe_get : string -> int -> char = "%string_unsafe_get"
-external unsafe_set : string -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_get : 'a _string -> int -> char = "%string_unsafe_get"
+external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
 external unsafe_blit :
-  string -> int -> string -> int -> int -> unit = "caml_blit_string" "noalloc"
+  'a _string -> int -> bytearray -> int -> int -> unit
+  = "caml_blit_string" "noalloc"
 external unsafe_fill :
-  string -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
+  bytearray -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
