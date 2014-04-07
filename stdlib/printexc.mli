@@ -28,8 +28,7 @@ val print: ('a -> 'b) -> 'a -> 'b
 val catch: ('a -> 'b) -> 'a -> 'b
 (** [Printexc.catch fn x] is similar to {!Printexc.print}, but
    aborts the program with exit code 2 after printing the
-   uncaught exception.
-   @deprecated The runtime
+   uncaught exception.  This function is deprecated: the runtime
    system is now able to print uncaught exceptions as precisely
    as [Printexc.catch] does.  Moreover, calling [Printexc.catch]
    makes it harder to track the location of the exception

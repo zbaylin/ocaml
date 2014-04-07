@@ -16,9 +16,6 @@ open Types
 
 val type_int: type_expr
 val type_char: type_expr
-val type__mutable: type_expr
-val type__constant: type_expr
-val type__string: type_expr -> type_expr
 val type_string: type_expr
 val type_float: type_expr
 val type_bool: type_expr
@@ -34,9 +31,6 @@ val type_lazy_t: type_expr -> type_expr
 
 val path_int: Path.t
 val path_char: Path.t
-val path__mutable: Path.t
-val path__constant: Path.t
-val path__string: Path.t
 val path_string: Path.t
 val path_float: Path.t
 val path_bool: Path.t
@@ -54,8 +48,6 @@ val path_lazy_t: Path.t
 val path_match_failure: Path.t
 val path_assert_failure : Path.t
 val path_undefined_recursive_module : Path.t
-
-val ident__mutable : Ident.t
 
 (* To build the initial environment. Since there is a nasty mutual
    recursion between predef and env, we break it by parameterizing

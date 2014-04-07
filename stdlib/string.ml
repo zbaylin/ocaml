@@ -13,15 +13,15 @@
 
 (* String operations *)
 
-external length : 'a _string -> int = "%string_length"
-external get : 'a _string -> int -> char = "%string_safe_get"
-external set : bytearray -> int -> char -> unit = "%string_safe_set"
-external create : int -> bytearray = "caml_create_string"
-external unsafe_get : 'a _string -> int -> char = "%string_unsafe_get"
-external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
-external unsafe_blit : 'a _string -> int -> bytearray -> int -> int -> unit
+external length : string -> int = "%string_length"
+external get : string -> int -> char = "%string_safe_get"
+external set : string -> int -> char -> unit = "%string_safe_set"
+external create : int -> string = "caml_create_string"
+external unsafe_get : string -> int -> char = "%string_unsafe_get"
+external unsafe_set : string -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_blit : string -> int -> string -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
-external unsafe_fill : bytearray -> int -> int -> char -> unit
+external unsafe_fill : string -> int -> int -> char -> unit
                      = "caml_fill_string" "noalloc"
 
 let make n c =
@@ -149,7 +149,7 @@ let escaped s =
 
 let map f s =
   let l = length s in
-  if l = 0 then "" else begin
+  if l = 0 then s else begin
     let r = create l in
     for i = 0 to l - 1 do unsafe_set r i (f(unsafe_get s i)) done;
     r
@@ -159,7 +159,7 @@ let uppercase s = map Char.uppercase s
 let lowercase s = map Char.lowercase s
 
 let apply1 f s =
-  if length s = 0 then "" else begin
+  if length s = 0 then s else begin
     let r = copy s in
     unsafe_set r 0 (f(unsafe_get s 0));
     r

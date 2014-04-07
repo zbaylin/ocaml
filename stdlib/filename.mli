@@ -123,7 +123,8 @@ val temp_dir_name : string
     if the variable is not set.
     Under Windows, the value of the [TEMP] environment variable, or "."
     if the variable is not set.
-    @deprecated {!Filename.get_temp_dir_name} should be used instead.
+    This function is deprecated; {!Filename.get_temp_dir_name} should be
+    used instead.
     @since 3.09.1
 *)
 

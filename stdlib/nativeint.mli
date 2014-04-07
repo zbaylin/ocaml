@@ -180,4 +180,5 @@ external format : string -> nativeint -> string = "caml_nativeint_format"
    native integer [n] in the format specified by [fmt].
    [fmt] is a [Printf]-style format consisting of exactly
    one [%d], [%i], [%u], [%x], [%X] or [%o] conversion specification.
-   @deprecated Use {!Printf.sprintf} with a [%nx] format instead. *)
+   This function is deprecated; use {!Printf.sprintf} with a [%nx] format
+   instead. *)

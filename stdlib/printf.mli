@@ -55,7 +55,7 @@ val fprintf : out_channel -> ('a, out_channel, unit) format -> 'a
      in the style [d.ddd e+-dd] (mantissa and exponent).
    - [g] or [G]: convert a floating-point argument to decimal notation,
      in style [f] or [e], [E] (whichever is more compact).
-   - [B]: convert a boolean argument to the string ["true"] or ["false"]
+   - [B]: convert a boolean argument to the string [true] or [false]
    - [b]: convert a boolean argument (deprecated; do not use in new
      programs).
    - [ld], [li], [lu], [lx], [lX], [lo]: convert an [int32] argument to
@@ -164,7 +164,7 @@ val kbprintf : (Buffer.t -> 'a) -> Buffer.t ->
 (** Deprecated *)
 
 val kprintf : (string -> 'a) -> ('b, unit, string, 'a) format4 -> 'b;;
-(** @deprecated Use [ksprintf]. *)
+(** A deprecated synonym for [ksprintf]. *)
 
 (**/**)
 

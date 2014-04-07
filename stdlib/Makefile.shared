@@ -22,7 +22,7 @@ OPTCOMPFLAGS=-warn-error A -nostdlib -g -bin-annot
 CAMLDEP=../boot/ocamlrun ../tools/ocamldep
 
 OBJS=pervasives.cmo $(OTHERS)
-OTHERS=array.cmo list.cmo char.cmo bytearray.cmo string.cmo sys.cmo \
+OTHERS=array.cmo list.cmo char.cmo string.cmo sys.cmo \
   sort.cmo marshal.cmo obj.cmo \
   int32.cmo int64.cmo nativeint.cmo \
   lexing.cmo parsing.cmo \
