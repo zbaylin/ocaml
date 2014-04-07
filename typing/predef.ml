@@ -41,6 +41,10 @@ and ident_nativeint = ident_create "nativeint"
 and ident_int32 = ident_create "int32"
 and ident_int64 = ident_create "int64"
 and ident_lazy_t = ident_create "lazy_t"
+and ident__mutable = ident_create "_mutable"
+and ident__constant = ident_create "_constant"
+and ident__string = ident_create "_string"
+and ident_bytearray = ident_create "bytearray"
 
 let path_int = Pident ident_int
 and path_char = Pident ident_char
@@ -57,6 +61,10 @@ and path_nativeint = Pident ident_nativeint
 and path_int32 = Pident ident_int32
 and path_int64 = Pident ident_int64
 and path_lazy_t = Pident ident_lazy_t
+and path__mutable = Pident ident__mutable
+and path__constant = Pident ident__constant
+and path__string = Pident ident__string
+and path_bytearray = Pident ident_bytearray
 
 let type_int = newgenty (Tconstr(path_int, [], ref Mnil))
 and type_char = newgenty (Tconstr(path_char, [], ref Mnil))
@@ -72,6 +80,10 @@ and type_nativeint = newgenty (Tconstr(path_nativeint, [], ref Mnil))
 and type_int32 = newgenty (Tconstr(path_int32, [], ref Mnil))
 and type_int64 = newgenty (Tconstr(path_int64, [], ref Mnil))
 and type_lazy_t t = newgenty (Tconstr(path_lazy_t, [t], ref Mnil))
+and type__mutable = newgenty (Tconstr(path__mutable, [], ref Mnil))
+and type__constant = newgenty (Tconstr(path__constant, [], ref Mnil))
+and type__string t = newgenty (Tconstr(path__string, [t], ref Mnil))
+and type_bytearray = newgenty (Tconstr(path_bytearray, [], ref Mnil))
 
 let ident_match_failure = ident_create_predef_exn "Match_failure"
 and ident_out_of_memory = ident_create_predef_exn "Out_of_memory"
@@ -129,6 +141,18 @@ let build_initial_env add_type add_exception empty_env =
   and decl_exn =
     {decl_abstr with
      type_kind = Type_variant []}
+  and decl__string =
+    let tvar = newgenvar() in
+    {decl_abstr with
+     type_params = [tvar];
+     type_arity = 1;
+     type_variance = [Variance.full]}
+  and decl_string =
+    {decl_abstr with
+     type_manifest = Some (type__string type__constant)}
+  and decl_bytearray =
+    {decl_abstr with
+     type_manifest = Some (type__string type__mutable)}
   and decl_array =
     let tvar = newgenvar() in
     {decl_abstr with
@@ -183,6 +207,10 @@ let build_initial_env add_type add_exception empty_env =
                          [newgenty (Ttuple[type_string; type_int; type_int])] (
   add_exception ident_undefined_recursive_module
                          [newgenty (Ttuple[type_string; type_int; type_int])] (
+  add_type ident_bytearray decl_bytearray (
+  add_type ident__string decl__string (
+  add_type ident__constant decl_abstr (
+  add_type ident__mutable decl_abstr (
   add_type ident_int64 decl_abstr (
   add_type ident_int32 decl_abstr (
   add_type ident_nativeint decl_abstr (
@@ -195,10 +223,10 @@ let build_initial_env add_type add_exception empty_env =
   add_type ident_unit decl_unit (
   add_type ident_bool decl_bool (
   add_type ident_float decl_abstr (
-  add_type ident_string decl_abstr (
+  add_type ident_string decl_string (
   add_type ident_char decl_abstr (
   add_type ident_int decl_abstr (
-    empty_env)))))))))))))))))))))))))))
+    empty_env)))))))))))))))))))))))))))))))
 
 let builtin_values =
   List.map (fun id -> Ident.make_global id; (Ident.name id, id))
