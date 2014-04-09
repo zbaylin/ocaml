@@ -966,7 +966,14 @@ let rec type_pat ~constrs ~labels ~no_existentials ~mode ~env sp expected_ty =
         pat_attributes = sp.ppat_attributes;
         pat_env = !env }
   | Ppat_constant cst ->
-      unify_pat_types loc !env (type_constant cst) expected_ty;
+      let csty =
+        match cst with
+        | Const_string _ when not !Clflags.unsafe_string ->
+            (* string patterns are polymorphic *)
+            instance_def (Predef.type__string (newgenvar ()))
+        | _ -> type_constant cst
+      in
+      unify_pat_types loc !env csty expected_ty;
       rp {
         pat_desc = Tpat_constant cst;
         pat_loc = loc; pat_extra=[];
