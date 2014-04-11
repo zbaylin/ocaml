@@ -11,12 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* Module [StdLabels]: meta-module for labelled libraries *)
+(* Module [BytearrayLabels]: labelled Bytearray module *)
 
-module Array = ArrayLabels
-
-module List = ListLabels
-
-module String = StringLabels
-
-module Bytearray = BytearrayLabels
+include Bytearray

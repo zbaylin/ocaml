@@ -22,7 +22,7 @@ external to_channel: out_channel -> 'a -> extern_flags list -> unit
 external to_string: 'a -> extern_flags list -> string
     = "caml_output_value_to_string"
 external to_buffer_unsafe:
-      string -> int -> int -> 'a -> extern_flags list -> int
+      bytearray -> int -> int -> 'a -> extern_flags list -> int
     = "caml_output_value_to_buffer"
 
 let to_buffer buff ofs len v flags =

@@ -56,23 +56,27 @@ external length : string -> int = "%string_length"
 
 external get : string -> int -> char = "%string_safe_get"
 (** [String.get s n] returns character number [n] in string [s].
-   You can also write [s.[n]] instead of [String.get s n].
 
    Raise [Invalid_argument] if [n] not a valid character number in [s]. *)
 
 
-external set : string -> int -> char -> unit = "%string_safe_set"
-(** [String.set s n c] modifies string [s] in place,
+external set : bytearray -> int -> char -> unit = "%string_safe_set"
+(** [String.set s n c] modifies bytearray [s] in place,
    replacing the character number [n] by [c].
-   You can also write [s.[n] <- c] instead of [String.set s n c].
 
-   Raise [Invalid_argument] if [n] is not a valid character number in [s]. *)
+   Raise [Invalid_argument] if [n] is not a valid character number in [s].
 
-external create : int -> string = "caml_create_string"
-(** [String.create n] returns a fresh string of length [n].
-   The string initially contains arbitrary characters.
+   @deprecated This is a deprecated alias of {!Bytearray.set}.
+*)
 
-   Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}. *)
+external create : int -> bytearray = "caml_create_string"
+(** [String.create n] returns a fresh bytearray of length [n].
+   The bytearray initially contains arbitrary characters.
+
+   Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.
+
+   @deprecated This is a deprecated alias of {!Bytearray.create}.
+*)
 
 val make : int -> char -> string
 (** [String.make n c] returns a fresh string of length [n],
@@ -81,7 +85,10 @@ val make : int -> char -> string
    Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.*)
 
 val copy : string -> string
-(** Return a copy of the given string. *)
+(** Return a copy of the given string.
+    @deprecated Strings are now read-only, so it doesn't make sense to
+    copy them.
+*)
 
 val sub : string -> int -> int -> string
 (** [String.sub s start len] returns a fresh string of length [len],
@@ -89,25 +96,28 @@ val sub : string -> int -> int -> string
    has length [len].
 
    Raise [Invalid_argument] if [start] and [len] do not
-   designate a valid substring of [s]. *)
+   designate a valid range of [s]. *)
 
-val fill : string -> int -> int -> char -> unit
-(** [String.fill s start len c] modifies string [s] in place,
+val fill : bytearray -> int -> int -> char -> unit
+(** [String.fill s start len c] modifies bytearray [s] in place,
    replacing [len] characters by [c], starting at [start].
 
    Raise [Invalid_argument] if [start] and [len] do not
-   designate a valid substring of [s]. *)
+   designate a valid range of [s].
 
-val blit : string -> int -> string -> int -> int -> unit
+   @deprecated This is a deprecated alias of {!Bytearray.fill}.
+*)
+
+val blit : string -> int -> bytearray -> int -> int -> unit
 (** [String.blit src srcoff dst dstoff len] copies [len] characters
-   from string [src], starting at character number [srcoff], to
-   string [dst], starting at character number [dstoff]. It works
-   correctly even if [src] and [dst] are the same string,
+   from the string or bytearray [src], starting at character number [srcoff],
+   to bytearray [dst], starting at character number [dstoff]. It works
+   correctly even if [src] and [dst] are the same bytearray,
    and the source and destination intervals overlap.
 
    Raise [Invalid_argument] if [srcoff] and [len] do not
-   designate a valid substring of [src], or if [dstoff] and [len]
-   do not designate a valid substring of [dst]. *)
+   designate a valid range of [src], or if [dstoff] and [len]
+   do not designate a valid range of [dst]. *)
 
 val concat : string -> string list -> string
 (** [String.concat sep sl] concatenates the list of strings [sl],
@@ -224,8 +234,9 @@ val compare: t -> t -> int
 (* The following is for system use only. Do not call directly. *)
 
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
-external unsafe_set : string -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
 external unsafe_blit :
-  string -> int -> string -> int -> int -> unit = "caml_blit_string" "noalloc"
+  string -> int -> bytearray -> int -> int -> unit
+  = "caml_blit_string" "noalloc"
 external unsafe_fill :
-  string -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
+  bytearray -> int -> int -> char -> unit = "caml_fill_string" "noalloc"

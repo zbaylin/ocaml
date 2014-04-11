@@ -106,12 +106,12 @@ external to_string :
    The [flags] argument has the same meaning as for
    {!Marshal.to_channel}. *)
 
-val to_buffer : string -> int -> int -> 'a -> extern_flags list -> int
+val to_buffer : bytearray -> int -> int -> 'a -> extern_flags list -> int
 (** [Marshal.to_buffer buff ofs len v flags] marshals the value [v],
-   storing its byte representation in the string [buff],
+   storing its byte representation in the bytearray [buff],
    starting at character number [ofs], and writing at most
    [len] characters.  It returns the number of characters
-   actually written to the string. If the byte representation
+   actually written to the bytearray. If the byte representation
    of [v] does not fit in [len] characters, the exception [Failure]
    is raised. *)
 
@@ -121,7 +121,7 @@ val from_channel : in_channel -> 'a
    one of the [Marshal.to_*] functions, and reconstructs and
    returns the corresponding value.*)
 
-val from_string : string -> int -> 'a
+val from_string : bytearray -> int -> 'a
 (** [Marshal.from_string buff ofs] unmarshals a structured value
    like {!Marshal.from_channel} does, except that the byte
    representation is not read from a channel, but taken from
@@ -141,16 +141,16 @@ val header_size : int
    if [buff], [ofs] does not contain a valid header.
 
    To read the byte representation of a marshaled value into
-   a string buffer, the program needs to read first
-   {!Marshal.header_size} characters into the buffer,
+   a bytearray, the program needs to read first
+   {!Marshal.header_size} characters into the bytearray,
    then determine the length of the remainder of the
    representation using {!Marshal.data_size},
-   make sure the buffer is large enough to hold the remaining
+   make sure the bytearray is large enough to hold the remaining
    data, then read it, and finally call {!Marshal.from_string}
    to unmarshal the value. *)
 
-val data_size : string -> int -> int
+val data_size : bytearray -> int -> int
 (** See {!Marshal.header_size}.*)
 
-val total_size : string -> int -> int
+val total_size : bytearray -> int -> int
 (** See {!Marshal.header_size}.*)

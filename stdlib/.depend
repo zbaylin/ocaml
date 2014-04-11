@@ -2,6 +2,8 @@ arg.cmi :
 array.cmi :
 arrayLabels.cmi :
 buffer.cmi :
+bytearray.cmi :
+bytearrayLabels.cmi :
 callback.cmi :
 camlinternalLazy.cmi :
 camlinternalMod.cmi : obj.cmi
@@ -36,7 +38,8 @@ scanf.cmi : pervasives.cmi
 set.cmi :
 sort.cmi :
 stack.cmi :
-stdLabels.cmi : stringLabels.cmi listLabels.cmi arrayLabels.cmi
+stdLabels.cmi : stringLabels.cmi listLabels.cmi bytearrayLabels.cmi \
+    arrayLabels.cmi
 stream.cmi :
 string.cmi :
 stringLabels.cmi :
@@ -52,6 +55,10 @@ arrayLabels.cmo : array.cmi arrayLabels.cmi
 arrayLabels.cmx : array.cmx arrayLabels.cmi
 buffer.cmo : sys.cmi string.cmi buffer.cmi
 buffer.cmx : sys.cmx string.cmx buffer.cmi
+bytearray.cmo : pervasives.cmi list.cmi char.cmi bytearray.cmi
+bytearray.cmx : pervasives.cmx list.cmx char.cmx bytearray.cmi
+bytearrayLabels.cmo : bytearray.cmi bytearrayLabels.cmi
+bytearrayLabels.cmx : bytearray.cmx bytearrayLabels.cmi
 callback.cmo : obj.cmi callback.cmi
 callback.cmx : obj.cmx callback.cmi
 camlinternalLazy.cmo : obj.cmi camlinternalLazy.cmi
@@ -162,6 +169,10 @@ arrayLabels.cmo : array.cmi arrayLabels.cmi
 arrayLabels.p.cmx : array.p.cmx arrayLabels.cmi
 buffer.cmo : sys.cmi string.cmi buffer.cmi
 buffer.p.cmx : sys.p.cmx string.p.cmx buffer.cmi
+bytearray.cmo : pervasives.cmi list.cmi char.cmi bytearray.cmi
+bytearray.p.cmx : pervasives.p.cmx list.p.cmx char.p.cmx bytearray.cmi
+bytearrayLabels.cmo : bytearray.cmi bytearrayLabels.cmi
+bytearrayLabels.p.cmx : bytearray.p.cmx bytearrayLabels.cmi
 callback.cmo : obj.cmi callback.cmi
 callback.p.cmx : obj.p.cmx callback.cmi
 camlinternalLazy.cmo : obj.cmi camlinternalLazy.cmi

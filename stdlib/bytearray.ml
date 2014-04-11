@@ -11,18 +11,22 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* String operations *)
+(* Bytearray operations *)
 
-external length : string -> int = "%string_length"
-external get : string -> int -> char = "%string_safe_get"
+external length : bytearray -> int = "%string_length"
+external get : bytearray -> int -> char = "%string_safe_get"
 external set : bytearray -> int -> char -> unit = "%string_safe_set"
 external create : int -> bytearray = "caml_create_string"
-external unsafe_get : string -> int -> char = "%string_unsafe_get"
+external unsafe_get : bytearray -> int -> char = "%string_unsafe_get"
 external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
-external unsafe_blit : string -> int ->  bytearray -> int -> int -> unit
+external unsafe_blit : bytearray -> int -> bytearray -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
 external unsafe_fill : bytearray -> int -> int -> char -> unit
                      = "caml_fill_string" "noalloc"
+external unsafe_to_string : bytearray -> string = "%identity"
+external unsafe_from_string : string -> bytearray = "%identity"
+
+let empty = create 0;;
 
 let make n c =
   let s = create n in
@@ -34,6 +38,9 @@ let copy s =
   let r = create len in
   unsafe_blit s 0 r 0 len;
   r
+
+let to_string b = unsafe_to_string (copy b)
+let from_string s = copy (unsafe_from_string s)
 
 let sub s ofs len =
   if ofs < 0 || len < 0 || ofs > length s - len
@@ -63,7 +70,7 @@ let iteri f a =
 
 let concat sep l =
   match l with
-    [] -> ""
+    [] -> empty
   | hd :: tl ->
       let num = ref 0 and len = ref 0 in
       List.iter (fun s -> incr num; len := !len + length s) l;
@@ -97,55 +104,52 @@ let trim s =
   while !j >= !i && is_space (unsafe_get s !j) do
     decr j
   done;
-  if !i = 0 && !j = len - 1 then
-    s
-  else if !j >= !i then
+  if !j >= !i then
     sub s !i (!j - !i + 1)
   else
-    ""
+    empty
 
 let escaped s =
   let n = ref 0 in
+  for i = 0 to length s - 1 do
+    n := !n +
+      (match unsafe_get s i with
+       | '"' | '\\' | '\n' | '\t' | '\r' | '\b' -> 2
+       | c -> if is_printable c then 1 else 4)
+  done;
+  if !n = length s then copy s else begin
+    let s' = create !n in
+    n := 0;
     for i = 0 to length s - 1 do
-      n := !n +
-        (match unsafe_get s i with
-         | '"' | '\\' | '\n' | '\t' | '\r' | '\b' -> 2
-         | c -> if is_printable c then 1 else 4)
+      begin match unsafe_get s i with
+      | ('"' | '\\') as c ->
+          unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
+      | '\n' ->
+          unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'n'
+      | '\t' ->
+          unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 't'
+      | '\r' ->
+          unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'r'
+      | '\b' ->
+          unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'b'
+      | c ->
+          if is_printable c then
+            unsafe_set s' !n c
+          else begin
+            let a = char_code c in
+            unsafe_set s' !n '\\';
+            incr n;
+            unsafe_set s' !n (char_chr (48 + a / 100));
+            incr n;
+            unsafe_set s' !n (char_chr (48 + (a / 10) mod 10));
+            incr n;
+            unsafe_set s' !n (char_chr (48 + a mod 10))
+          end
+      end;
+      incr n
     done;
-    if !n = length s then s else begin
-      let s' = create !n in
-        n := 0;
-        for i = 0 to length s - 1 do
-          begin
-            match unsafe_get s i with
-            | ('"' | '\\') as c ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
-            | '\n' ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'n'
-            | '\t' ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 't'
-            | '\r' ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'r'
-            | '\b' ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'b'
-            | c ->
-                if is_printable c then
-                  unsafe_set s' !n c
-                else begin
-                  let a = char_code c in
-                  unsafe_set s' !n '\\';
-                  incr n;
-                  unsafe_set s' !n (char_chr (48 + a / 100));
-                  incr n;
-                  unsafe_set s' !n (char_chr (48 + (a / 10) mod 10));
-                  incr n;
-                  unsafe_set s' !n (char_chr (48 + a mod 10))
-                end
-          end;
-          incr n
-        done;
-        s'
-      end
+    s'
+  end
 
 let map f s =
   let l = length s in
@@ -200,6 +204,6 @@ let rcontains_from s i c =
   if i < 0 || i >= length s then invalid_arg "String.rcontains_from" else
   try ignore (rindex_rec s i c); true with Not_found -> false;;
 
-type t = string
+type t = bytearray
 
 let compare (x: t) (y: t) = Pervasives.compare x y

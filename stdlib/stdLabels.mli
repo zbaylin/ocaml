@@ -17,9 +17,11 @@
    {!List} and {!String} modules.
 
    They only differ by their labels. Detailed interfaces can be found
-   in [arrayLabels.mli], [listLabels.mli] and [stringLabels.mli].
+   in [arrayLabels.mli], [listLabels.mli], [stringLabels.mli] and
+   [bytearrayLabels.mli].
 *)
 
 module Array = ArrayLabels
 module List = ListLabels
 module String = StringLabels
+module Bytearray = BytearrayLabels

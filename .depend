@@ -160,12 +160,12 @@ typing/cmt_format.cmx : typing/types.cmx typing/typedtreeMap.cmx \
     typing/typedtree.cmx utils/misc.cmx parsing/location.cmx \
     parsing/lexer.cmx typing/env.cmx utils/config.cmx typing/cmi_format.cmx \
     utils/clflags.cmx typing/cmt_format.cmi
-typing/ctype.cmo : typing/types.cmi typing/subst.cmi typing/path.cmi \
-    utils/misc.cmi parsing/longident.cmi parsing/location.cmi \
+typing/ctype.cmo : typing/types.cmi typing/subst.cmi typing/predef.cmi \
+    typing/path.cmi utils/misc.cmi parsing/longident.cmi parsing/location.cmi \
     typing/ident.cmi typing/env.cmi utils/clflags.cmi typing/btype.cmi \
     parsing/asttypes.cmi typing/ctype.cmi
-typing/ctype.cmx : typing/types.cmx typing/subst.cmx typing/path.cmx \
-    utils/misc.cmx parsing/longident.cmx parsing/location.cmx \
+typing/ctype.cmx : typing/types.cmx typing/subst.cmx typing/predef.cmx \
+    typing/path.cmx utils/misc.cmx parsing/longident.cmx parsing/location.cmx \
     typing/ident.cmx typing/env.cmx utils/clflags.cmx typing/btype.cmx \
     parsing/asttypes.cmi typing/ctype.cmi
 typing/datarepr.cmo : typing/types.cmi typing/predef.cmi typing/path.cmi \
@@ -455,15 +455,15 @@ bytecomp/bytesections.cmx : utils/misc.cmx utils/config.cmx \
 bytecomp/dll.cmo : utils/misc.cmi utils/config.cmi bytecomp/dll.cmi
 bytecomp/dll.cmx : utils/misc.cmx utils/config.cmx bytecomp/dll.cmi
 bytecomp/emitcode.cmo : bytecomp/translmod.cmi typing/primitive.cmi \
-    bytecomp/opcodes.cmo utils/misc.cmi bytecomp/meta.cmi bytecomp/lambda.cmi \
-    bytecomp/instruct.cmi typing/env.cmi utils/config.cmi \
-    bytecomp/cmo_format.cmi utils/clflags.cmi typing/btype.cmi \
-    parsing/asttypes.cmi bytecomp/emitcode.cmi
+    bytecomp/opcodes.cmo utils/misc.cmi bytecomp/meta.cmi \
+    parsing/location.cmi bytecomp/lambda.cmi bytecomp/instruct.cmi \
+    typing/env.cmi utils/config.cmi bytecomp/cmo_format.cmi utils/clflags.cmi \
+    typing/btype.cmi parsing/asttypes.cmi bytecomp/emitcode.cmi
 bytecomp/emitcode.cmx : bytecomp/translmod.cmx typing/primitive.cmx \
-    bytecomp/opcodes.cmx utils/misc.cmx bytecomp/meta.cmx bytecomp/lambda.cmx \
-    bytecomp/instruct.cmx typing/env.cmx utils/config.cmx \
-    bytecomp/cmo_format.cmi utils/clflags.cmx typing/btype.cmx \
-    parsing/asttypes.cmi bytecomp/emitcode.cmi
+    bytecomp/opcodes.cmx utils/misc.cmx bytecomp/meta.cmx \
+    parsing/location.cmx bytecomp/lambda.cmx bytecomp/instruct.cmx \
+    typing/env.cmx utils/config.cmx bytecomp/cmo_format.cmi utils/clflags.cmx \
+    typing/btype.cmx parsing/asttypes.cmi bytecomp/emitcode.cmi
 bytecomp/instruct.cmo : typing/types.cmi typing/subst.cmi \
     parsing/location.cmi bytecomp/lambda.cmi typing/ident.cmi typing/env.cmi \
     bytecomp/instruct.cmi

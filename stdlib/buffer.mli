@@ -11,9 +11,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(** Extensible string buffers.
+(** Extensible buffers.
 
-   This module implements string buffers that automatically expand
+   This module implements buffers that automatically expand
    as necessary.  It provides accumulative concatenation of strings
    in quasi-linear time (instead of quadratic time when strings are
    concatenated pairwise).
@@ -24,8 +24,8 @@ type t
 
 val create : int -> t
 (** [create n] returns a fresh buffer, initially empty.
-   The [n] parameter is the initial size of the internal string
-   that holds the buffer contents. That string is automatically
+   The [n] parameter is the initial size of the internal bytearray
+   that holds the buffer contents. That bytearray is automatically
    reallocated when more than [n] characters are stored in the buffer,
    but shrinks back to [n] characters when [reset] is called.
    For best performance, [n] should be of the same order of magnitude
@@ -41,19 +41,19 @@ val contents : t -> string
    The buffer itself is unchanged. *)
 
 val sub : t -> int -> int -> string
-(** [Buffer.sub b off len] returns (a copy of) the substring of the
+(** [Buffer.sub b off len] returns (a copy of) the bytes from the
 current contents of the buffer [b] starting at offset [off] of length
 [len] bytes. May raise [Invalid_argument] if out of bounds request. The
 buffer itself is unaffected. *)
 
-val blit : t -> int -> string -> int -> int -> unit
+val blit : t -> int -> bytearray -> int -> int -> unit
 (** [Buffer.blit src srcoff dst dstoff len] copies [len] characters from
    the current contents of the buffer [src], starting at offset [srcoff]
-   to string [dst], starting at character [dstoff].
+   to [dst], starting at character [dstoff].
 
    Raise [Invalid_argument] if [srcoff] and [len] do not designate a valid
-   substring of [src], or if [dstoff] and [len] do not designate a valid
-   substring of [dst].
+   range of [src], or if [dstoff] and [len] do not designate a valid
+   range of [dst].
    @since 3.11.2
 *)
 
@@ -68,8 +68,8 @@ val clear : t -> unit
 (** Empty the buffer. *)
 
 val reset : t -> unit
-(** Empty the buffer and deallocate the internal string holding the
-   buffer contents, replacing it with the initial internal string
+(** Empty the buffer and deallocate the internal bytearray holding the
+   buffer contents, replacing it with the initial internal bytearray
    of length [n] that was allocated by {!Buffer.create} [n].
    For long-lived buffers that may have grown a lot, [reset] allows
    faster reclamation of the space used by the buffer. *)

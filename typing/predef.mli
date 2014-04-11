@@ -16,9 +16,6 @@ open Types
 
 val type_int: type_expr
 val type_char: type_expr
-val type__mutable: type_expr
-val type__constant: type_expr
-val type__string: type_expr -> type_expr
 val type_string: type_expr
 val type_bytearray: type_expr
 val type_float: type_expr
@@ -35,9 +32,6 @@ val type_lazy_t: type_expr -> type_expr
 
 val path_int: Path.t
 val path_char: Path.t
-val path__mutable: Path.t
-val path__constant: Path.t
-val path__string: Path.t
 val path_string: Path.t
 val path_bytearray: Path.t
 val path_float: Path.t

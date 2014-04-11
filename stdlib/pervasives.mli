@@ -584,8 +584,8 @@ val prerr_float : float -> unit
 (** Print a floating-point number, in decimal, on standard error. *)
 
 val prerr_endline : string -> unit
-(** Print a string, followed by a newline character on standard error
-   and flush standard error. *)
+(** Print a string, followed by a newline character on standard
+   error and flush standard error. *)
 
 val prerr_newline : unit -> unit
 (** Print a newline character on standard error, and flush
@@ -756,9 +756,9 @@ val input_line : in_channel -> string
    Raise [End_of_file] if the end of the file is reached
    at the beginning of line. *)
 
-val input : in_channel -> string -> int -> int -> int
+val input : in_channel -> bytearray -> int -> int -> int
 (** [input ic buf pos len] reads up to [len] characters from
-   the given channel [ic], storing them in string [buf], starting at
+   the given channel [ic], storing them in bytearray [buf], starting at
    character number [pos].
    It returns the actual number of characters read, between 0 and
    [len] (inclusive).
@@ -771,15 +771,15 @@ val input : in_channel -> string -> int -> int -> int
    if desired.  (See also {!Pervasives.really_input} for reading
    exactly [len] characters.)
    Exception [Invalid_argument "input"] is raised if [pos] and [len]
-   do not designate a valid substring of [buf]. *)
+   do not designate a valid range of [buf]. *)
 
-val really_input : in_channel -> string -> int -> int -> unit
+val really_input : in_channel -> bytearray -> int -> int -> unit
 (** [really_input ic buf pos len] reads [len] characters from channel [ic],
-   storing them in string [buf], starting at character number [pos].
+   storing them in bytearray [buf], starting at character number [pos].
    Raise [End_of_file] if the end of file is reached before [len]
    characters have been read.
    Raise [Invalid_argument "really_input"] if
-   [pos] and [len] do not designate a valid substring of [buf]. *)
+   [pos] and [len] do not designate a valid range of [buf]. *)
 
 val input_byte : in_channel -> int
 (** Same as {!Pervasives.input_char}, but return the 8-bit integer representing
@@ -1003,6 +1003,6 @@ val at_exit : (unit -> unit) -> unit
 
 val valid_float_lexem : string -> string
 
-val unsafe_really_input : in_channel -> string -> int -> int -> unit
+val unsafe_really_input : in_channel -> bytearray -> int -> int -> unit
 
 val do_at_exit : unit -> unit

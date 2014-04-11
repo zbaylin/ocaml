@@ -153,8 +153,8 @@ external classify_float : float -> fpclass = "caml_classify_float"
 (* String operations -- more in module String *)
 
 external string_length : string -> int = "%string_length"
-external string_create : int -> string = "caml_create_string"
-external string_blit : string -> int -> string -> int -> int -> unit
+external string_create : int -> bytearray = "caml_create_string"
+external string_blit : string -> int -> bytearray -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
 
 let ( ^ ) s1 s2 =
