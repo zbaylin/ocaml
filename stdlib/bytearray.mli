@@ -62,7 +62,7 @@ val make : int -> char -> bytearray
 val copy : bytearray -> bytearray
 (** Return a copy of the given bytearray. *)
 
-val from_string : string -> bytearray
+val of_string : string -> bytearray
 (** Return a copy of the given string as a bytearray. *)
 
 val to_string : bytearray -> string
@@ -75,6 +75,9 @@ val sub : bytearray -> int -> int -> bytearray
 
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid range of [s]. *)
+
+val sub_string : bytearray -> int -> int -> string
+(** Same as [sub] but return a string instead of a bytearray. *)
 
 val fill : bytearray -> int -> int -> char -> unit
 (** [fill s start len c] modifies [s] in place, replacing [len]
@@ -212,4 +215,4 @@ external unsafe_blit :
 external unsafe_fill :
   bytearray -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
 external unsafe_to_string : bytearray -> string = "%identity"
-external unsafe_from_string : string -> bytearray = "%identity"
+external unsafe_of_string : string -> bytearray = "%identity"

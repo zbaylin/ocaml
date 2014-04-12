@@ -13,6 +13,8 @@
 
 (* The run-time library for scanners. *)
 
+let ($) = String.get;;
+
 (* Scanning buffers. *)
 module type SCANNING = sig
 
@@ -244,7 +246,7 @@ module Scanning : SCANNING = struct
     let len = String.length s in
     let next () =
       if !i >= len then raise End_of_file else
-      let c = s.[!i] in
+      let c = s $ !i in
       incr i;
       c in
     create From_string next
@@ -318,7 +320,7 @@ module Scanning : SCANNING = struct
 
   let from_ic scan_close_ic iname ic =
     let len = !file_buffer_size in
-    let buf = String.create len in
+    let buf = Bytearray.create len in
     let i = ref 0 in
     let lim = ref 0 in
     let eof = ref false in
@@ -521,7 +523,7 @@ let ignore_stoppers stps ib =
 
 (* Extracting tokens from the output token buffer. *)
 
-let token_char ib = (Scanning.token ib).[0];;
+let token_char ib = String.get (Scanning.token ib) 0;;
 
 let token_string = Scanning.token;;
 
@@ -544,7 +546,7 @@ let token_int_literal conv ib =
     | 'b' -> "0b" ^ Scanning.token ib
     | _ -> assert false in
   let l = String.length tok in
-  if l = 0 || tok.[0] <> '+' then tok else String.sub tok 1 (l - 1)
+  if l = 0 || tok$0 <> '+' then tok else String.sub tok 1 (l - 1)
 ;;
 
 (* All the functions that convert a string to a number raise the exception
@@ -1077,7 +1079,7 @@ let get_bit_of_range r c =
 (* Create a full or empty set of chars. *)
 let make_range bit =
   let c = char_of_int (if bit = 0 then 0 else 0xFF) in
-  String.make 32 c
+  Bytearray.make 32 c
 ;;
 
 (* Test if a char belongs to a set of chars. *)
@@ -1093,19 +1095,19 @@ let make_char_bit_vect bit set =
   let lim = String.length set - 1 in
   let rec loop bit rp i =
     if i <= lim then
-    match set.[i] with
+    match set$i with
     | '-' when rp ->
       (* if i = 0 then rp is false (since the initial call is
          loop bit false 0). Hence i >= 1 and the following is safe. *)
-      let c1 = set.[i - 1] in
+      let c1 = set$(i - 1) in
       let i = succ i in
       if i > lim then loop bit false (i - 1) else
-      let c2 = set.[i] in
+      let c2 = set$i in
       for j = int_of_char c1 to int_of_char c2 do
         set_bit_of_range r j bit done;
       loop bit false (succ i)
     | _ ->
-      set_bit_of_range r (int_of_char set.[i]) bit;
+      set_bit_of_range r (int_of_char (set$i)) bit;
       loop bit true (succ i) in
   loop bit false 0;
   r
@@ -1125,13 +1127,13 @@ let make_setp stp char_set =
     begin match String.length set with
     | 0 -> (fun _ -> 0)
     | 1 ->
-      let p = set.[0] in
+      let p = set$0 in
       (fun c -> if c == p then 1 else 0)
     | 2 ->
-      let p1 = set.[0] and p2 = set.[1] in
+      let p1 = set$0 and p2 = set$1 in
       (fun c -> if c == p1 || c == p2 then 1 else 0)
     | 3 ->
-      let p1 = set.[0] and p2 = set.[1] and p3 = set.[2] in
+      let p1 = set$0 and p2 = set$1 and p3 = set$2 in
       if p2 = '-' then make_predicate 1 set stp else
       (fun c -> if c == p1 || c == p2 || c == p3 then 1 else 0)
     | _ -> make_predicate 1 set stp
@@ -1140,13 +1142,13 @@ let make_setp stp char_set =
     begin match String.length set with
     | 0 -> (fun _ -> 1)
     | 1 ->
-      let p = set.[0] in
+      let p = set$0 in
       (fun c -> if c != p then 1 else 0)
     | 2 ->
-      let p1 = set.[0] and p2 = set.[1] in
+      let p1 = set$0 and p2 = set$1 in
       (fun c -> if c != p1 && c != p2 then 1 else 0)
     | 3 ->
-      let p1 = set.[0] and p2 = set.[1] and p3 = set.[2] in
+      let p1 = set$0 and p2 = set$1 and p3 = set$2 in
       if p2 = '-' then make_predicate 0 set stp else
       (fun c -> if c != p1 && c != p2 && c != p3 then 1 else 0)
     | _ -> make_predicate 0 set stp
@@ -1229,16 +1231,16 @@ let scan_chars_in_char_set stp char_set width ib =
     | Pos_set set ->
       begin match String.length set with
       | 0 -> loop (fun _ -> 0) width
-      | 1 -> loop_pos1 set.[0] width
-      | 2 -> loop_pos2 set.[0] set.[1] width
-      | 3 when set.[1] != '-' -> loop_pos3 set.[0] set.[1] set.[2] width
+      | 1 -> loop_pos1 (set$0) width
+      | 2 -> loop_pos2 (set$0) (set$1) width
+      | 3 when set$1 != '-' -> loop_pos3 (set$0) (set$1) (set$2) width
       | _ -> loop (find_setp stp char_set) width end
     | Neg_set set ->
       begin match String.length set with
       | 0 -> loop (fun _ -> 1) width
-      | 1 -> loop_neg1 set.[0] width
-      | 2 -> loop_neg2 set.[0] set.[1] width
-      | 3 when set.[1] != '-' -> loop_neg3 set.[0] set.[1] set.[2] width
+      | 1 -> loop_neg1 (set$0) width
+      | 2 -> loop_neg2 (set$0) (set$1) width
+      | 3 when set$1 != '-' -> loop_neg3 (set$0) (set$1) (set$2) width
       | _ -> loop (find_setp stp char_set) width end in
   ignore_stoppers stp ib;
   width
@@ -1551,7 +1553,7 @@ let string_to_String s =
   let b = Buffer.create (l + 2) in
   Buffer.add_char b '\"';
   for i = 0 to l - 1 do
-    let c = s.[i] in
+    let c = s$i in
     if c = '\"' then Buffer.add_char b '\\';
     Buffer.add_char b c;
   done;
@@ -1566,9 +1568,3 @@ let format_from_string s fmt =
 let unescaped s =
   sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)
 ;;
-
-(*
- Local Variables:
-  compile-command: "cd ..; make world"
-  End:
-*)

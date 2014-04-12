@@ -47,7 +47,7 @@ val make : int -> char -> bytearray
 val copy : bytearray -> bytearray
 (** Return a copy of the given string. *)
 
-val from_string : string -> bytearray
+val of_string : string -> bytearray
 (** Return a copy of the given string as a bytearray. *)
 
 val to_string : bytearray -> string
@@ -190,4 +190,4 @@ external unsafe_blit :
 external unsafe_fill :
   bytearray -> pos:int -> len:int -> char -> unit = "caml_fill_string" "noalloc"
 external unsafe_to_string : bytearray -> string = "%identity"
-external unsafe_from_string : string -> bytearray = "%identity"
+external unsafe_of_string : string -> bytearray = "%identity"

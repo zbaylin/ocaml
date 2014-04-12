@@ -37,7 +37,7 @@ exception Exit
 
 (* Composition operators *)
 
-external (|>) : 'a -> ('a -> 'b) -> 'b = "%revapply"
+external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
 external ( @@ ) : ('a -> 'b) -> 'a -> 'b = "%apply"
 
 (* Debugging *)
@@ -56,63 +56,63 @@ external __POS_OF__ : 'a -> (string * int * int * int) * 'a = "%loc_POS"
 
 (* Comparisons *)
 
-external (=) : 'a -> 'a -> bool = "%equal"
-external (<>) : 'a -> 'a -> bool = "%notequal"
-external (<) : 'a -> 'a -> bool = "%lessthan"
-external (>) : 'a -> 'a -> bool = "%greaterthan"
-external (<=) : 'a -> 'a -> bool = "%lessequal"
-external (>=) : 'a -> 'a -> bool = "%greaterequal"
-external compare: 'a -> 'a -> int = "%compare"
+external ( = ) : 'a -> 'a -> bool = "%equal"
+external ( <> ) : 'a -> 'a -> bool = "%notequal"
+external ( < ) : 'a -> 'a -> bool = "%lessthan"
+external ( > ) : 'a -> 'a -> bool = "%greaterthan"
+external ( <= ) : 'a -> 'a -> bool = "%lessequal"
+external ( >= ) : 'a -> 'a -> bool = "%greaterequal"
+external compare : 'a -> 'a -> int = "%compare"
 
 let min x y = if x <= y then x else y
 let max x y = if x >= y then x else y
 
-external (==) : 'a -> 'a -> bool = "%eq"
-external (!=) : 'a -> 'a -> bool = "%noteq"
+external ( == ) : 'a -> 'a -> bool = "%eq"
+external ( != ) : 'a -> 'a -> bool = "%noteq"
 
 (* Boolean operations *)
 
 external not : bool -> bool = "%boolnot"
-external (&) : bool -> bool -> bool = "%sequand"
-external (&&) : bool -> bool -> bool = "%sequand"
-external (or) : bool -> bool -> bool = "%sequor"
-external (||) : bool -> bool -> bool = "%sequor"
+external ( & ) : bool -> bool -> bool = "%sequand"
+external ( && ) : bool -> bool -> bool = "%sequand"
+external ( or ) : bool -> bool -> bool = "%sequor"
+external ( || ) : bool -> bool -> bool = "%sequor"
 
 (* Integer operations *)
 
-external (~-) : int -> int = "%negint"
-external (~+) : int -> int = "%identity"
+external ( ~- ) : int -> int = "%negint"
+external ( ~+ ) : int -> int = "%identity"
 external succ : int -> int = "%succint"
 external pred : int -> int = "%predint"
-external (+) : int -> int -> int = "%addint"
-external (-) : int -> int -> int = "%subint"
+external ( + ) : int -> int -> int = "%addint"
+external ( - ) : int -> int -> int = "%subint"
 external ( * ) : int -> int -> int = "%mulint"
-external (/) : int -> int -> int = "%divint"
-external (mod) : int -> int -> int = "%modint"
+external ( / ) : int -> int -> int = "%divint"
+external ( mod ) : int -> int -> int = "%modint"
 
 let abs x = if x >= 0 then x else -x
 
-external (land) : int -> int -> int = "%andint"
-external (lor) : int -> int -> int = "%orint"
-external (lxor) : int -> int -> int = "%xorint"
+external ( land ) : int -> int -> int = "%andint"
+external ( lor ) : int -> int -> int = "%orint"
+external ( lxor ) : int -> int -> int = "%xorint"
 
 let lnot x = x lxor (-1)
 
-external (lsl) : int -> int -> int = "%lslint"
-external (lsr) : int -> int -> int = "%lsrint"
-external (asr) : int -> int -> int = "%asrint"
+external ( lsl ) : int -> int -> int = "%lslint"
+external ( lsr ) : int -> int -> int = "%lsrint"
+external ( asr ) : int -> int -> int = "%asrint"
 
-let min_int = 1 lsl (if 1 lsl 31 = 0 then 30 else 62)
-let max_int = min_int - 1
+let max_int = (-1) lsr 1
+let min_int = max_int + 1
 
 (* Floating-point operations *)
 
-external (~-.) : float -> float = "%negfloat"
-external (~+.) : float -> float = "%identity"
-external (+.) : float -> float -> float = "%addfloat"
-external (-.) : float -> float -> float = "%subfloat"
+external ( ~-. ) : float -> float = "%negfloat"
+external ( ~+. ) : float -> float = "%identity"
+external ( +. ) : float -> float -> float = "%addfloat"
+external ( -. ) : float -> float -> float = "%subfloat"
 external ( *. ) : float -> float -> float = "%mulfloat"
-external (/.) : float -> float -> float = "%divfloat"
+external ( /. ) : float -> float -> float = "%divfloat"
 external ( ** ) : float -> float -> float = "caml_power_float" "pow" "float"
 external exp : float -> float = "caml_exp_float" "exp" "float"
 external expm1 : float -> float = "caml_expm1_float" "caml_expm1" "float"
@@ -165,16 +165,19 @@ type fpclass =
   | FP_zero
   | FP_infinite
   | FP_nan
-external classify_float: float -> fpclass = "caml_classify_float"
+external classify_float : float -> fpclass = "caml_classify_float"
 
-(* String operations -- more in module String *)
+(* String and bytearray operations -- more in modules String and Bytearray *)
 
 external string_length : string -> int = "%string_length"
-external string_create: int -> string = "caml_create_string"
+external bytearray_length : bytearray -> int = "%string_length"
+external string_create : int -> string = "caml_create_string"
 external string_blit : string -> int -> bytearray -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
+external bytearray_unsafe_to_string : bytearray -> string = "%identity"
+external bytearray_unsafe_of_string : string -> bytearray = "%identity"
 
-let (^) s1 s2 =
+let ( ^ ) s1 s2 =
   let l1 = string_length s1 and l2 = string_length s2 in
   let s = string_create (l1 + l2) in
   string_blit s1 0 s 0 l1;
@@ -349,7 +352,7 @@ let output oc s ofs len =
   then invalid_arg "output"
   else unsafe_output oc s ofs len
 
-let output' oc ~buf ~pos ~len = output oc buf pos len
+let output_substring = output
 
 let rec output_byte oc b =
   try
@@ -429,6 +432,11 @@ let really_input ic s ofs len =
   if ofs < 0 || len < 0 || ofs > string_length s - len
   then invalid_arg "really_input"
   else unsafe_really_input ic s ofs len
+
+let really_input_string ic len =
+  let s = string_create len in
+  really_input ic s 0 len;
+  s
 
 let input_line ic =
   let buf = ref (string_create 128) in

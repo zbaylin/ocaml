@@ -35,23 +35,20 @@ let file filename =
   d
 
 let output chan digest =
-  output chan digest 0 16
+  output_string chan digest
 
-let input chan =
-  let digest = String.create 16 in
-  really_input chan digest 0 16;
-  digest
+let input chan = really_input_string chan 16
 
 let char_hex n = Char.unsafe_chr (n + if n < 10 then Char.code '0' else (Char.code 'a' - 10))
 
 let to_hex d =
-  let result = String.create 32 in
+  let result = Bytearray.create 32 in
   for i = 0 to 15 do
-    let x = Char.code d.[i] in
-    String.unsafe_set result (i*2) (char_hex (x lsr 4));
-    String.unsafe_set result (i*2+1) (char_hex (x land 0x0f));
+    let x = Char.code (String.get d i) in
+    Bytearray.unsafe_set result (i*2) (char_hex (x lsr 4));
+    Bytearray.unsafe_set result (i*2+1) (char_hex (x land 0x0f));
   done;
-  result
+  Bytearray.unsafe_to_string result
 
 let from_hex s =
   if String.length s <> 32 then raise (Invalid_argument "Digest.from_hex");
@@ -62,9 +59,9 @@ let from_hex s =
     | 'a'..'f' -> Char.code c - Char.code 'a' + 10
     | _ -> raise (Invalid_argument "Digest.from_hex")
   in
-  let byte i = digit s.[i] lsl 4 + digit s.[i+1] in
-  let result = String.create 16 in
+  let byte i = digit (String.get s i) lsl 4 + digit (String.get s (i+1)) in
+  let result = Bytearray.create 16 in
   for i = 0 to 15 do
     result.[i] <- Char.chr (byte (2 * i));
   done;
-  result
+  Bytearray.unsafe_to_string result

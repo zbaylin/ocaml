@@ -57,4 +57,4 @@ val unaligned_tag : int   (* should never happen @since 3.11.0 *)
     instead. *)
 
 val marshal : t -> string
-val unmarshal : string -> int -> t * int
+val unmarshal : bytearray -> int -> t * int

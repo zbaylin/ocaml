@@ -24,7 +24,7 @@ external unsafe_blit : bytearray -> int -> bytearray -> int -> int -> unit
 external unsafe_fill : bytearray -> int -> int -> char -> unit
                      = "caml_fill_string" "noalloc"
 external unsafe_to_string : bytearray -> string = "%identity"
-external unsafe_from_string : string -> bytearray = "%identity"
+external unsafe_of_string : string -> bytearray = "%identity"
 
 let empty = create 0;;
 
@@ -40,7 +40,7 @@ let copy s =
   r
 
 let to_string b = unsafe_to_string (copy b)
-let from_string s = copy (unsafe_from_string s)
+let of_string s = copy (unsafe_of_string s)
 
 let sub s ofs len =
   if ofs < 0 || len < 0 || ofs > length s - len
@@ -50,6 +50,8 @@ let sub s ofs len =
     unsafe_blit s ofs r 0 len;
     r
   end
+
+let sub_string b ofs len = unsafe_to_string (sub b ofs len)
 
 let fill s ofs len c =
   if ofs < 0 || len < 0 || ofs > length s - len

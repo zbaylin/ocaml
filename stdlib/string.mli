@@ -61,6 +61,7 @@ external get : string -> int -> char = "%string_safe_get"
 
 
 external set : bytearray -> int -> char -> unit = "%string_safe_set"
+  [@@deprecated]
 (** [String.set s n c] modifies bytearray [s] in place,
    replacing the character number [n] by [c].
 
@@ -69,7 +70,7 @@ external set : bytearray -> int -> char -> unit = "%string_safe_set"
    @deprecated This is a deprecated alias of {!Bytearray.set}.
 *)
 
-external create : int -> bytearray = "caml_create_string"
+external create : int -> bytearray = "caml_create_string" [@@deprecated]
 (** [String.create n] returns a fresh bytearray of length [n].
    The bytearray initially contains arbitrary characters.
 
@@ -98,7 +99,7 @@ val sub : string -> int -> int -> string
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid range of [s]. *)
 
-val fill : bytearray -> int -> int -> char -> unit
+val fill : bytearray -> int -> int -> char -> unit [@@deprecated]
 (** [String.fill s start len c] modifies bytearray [s] in place,
    replacing [len] characters by [c], starting at [start].
 
@@ -235,8 +236,11 @@ val compare: t -> t -> int
 
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
 external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
+  [@@deprecated]
 external unsafe_blit :
   string -> int -> bytearray -> int -> int -> unit
   = "caml_blit_string" "noalloc"
 external unsafe_fill :
   bytearray -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
+  [@@deprecated]
+

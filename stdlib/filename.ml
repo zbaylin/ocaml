@@ -11,14 +11,16 @@
 (*                                                                     *)
 (***********************************************************************)
 
+let ($) = String.get
+
 let generic_quote quotequote s =
   let l = String.length s in
   let b = Buffer.create (l + 20) in
   Buffer.add_char b '\'';
   for i = 0 to l - 1 do
-    if s.[i] = '\''
+    if s$i = '\''
     then Buffer.add_string b quotequote
-    else Buffer.add_char b  s.[i]
+    else Buffer.add_char b (s$i)
   done;
   Buffer.add_char b '\'';
   Buffer.contents b
@@ -71,8 +73,8 @@ module Unix = struct
   let current_dir_name = "."
   let parent_dir_name = ".."
   let dir_sep = "/"
-  let is_dir_sep s i = s.[i] = '/'
-  let is_relative n = String.length n < 1 || n.[0] <> '/';;
+  let is_dir_sep s i = s$i = '/'
+  let is_relative n = String.length n < 1 || n$0 <> '/';;
   let is_implicit n =
     is_relative n
     && (String.length n < 2 || String.sub n 0 2 <> "./")
@@ -92,11 +94,11 @@ module Win32 = struct
   let current_dir_name = "."
   let parent_dir_name = ".."
   let dir_sep = "\\"
-  let is_dir_sep s i = let c = s.[i] in c = '/' || c = '\\' || c = ':'
+  let is_dir_sep s i = let c = s$i in c = '/' || c = '\\' || c = ':'
   let is_relative n =
-    (String.length n < 1 || n.[0] <> '/')
-    && (String.length n < 1 || n.[0] <> '\\')
-    && (String.length n < 2 || n.[1] <> ':')
+    (String.length n < 1 || n$0 <> '/')
+    && (String.length n < 1 || n$0 <> '\\')
+    && (String.length n < 2 || n$1 <> ':')
   let is_implicit n =
     is_relative n
     && (String.length n < 2 || String.sub n 0 2 <> "./")
@@ -116,7 +118,7 @@ module Win32 = struct
     Buffer.add_char b '\"';
     let rec loop i =
       if i = l then Buffer.add_char b '\"' else
-      match s.[i] with
+      match s$i with
       | '\"' -> loop_bs 0 i;
       | '\\' -> loop_bs 0 i;
       | c    -> Buffer.add_char b c; loop (i+1);
@@ -125,7 +127,7 @@ module Win32 = struct
         Buffer.add_char b '\"';
         add_bs n;
       end else begin
-        match s.[i] with
+        match s$i with
         | '\"' -> add_bs (2*n+1); Buffer.add_char b '\"'; loop (i+1);
         | '\\' -> loop_bs (n+1) (i+1);
         | c    -> add_bs n; loop i
@@ -139,7 +141,7 @@ module Win32 = struct
       | 'A' .. 'Z' | 'a' .. 'z' -> true
       | _ -> false
     in
-    String.length s >= 2 && is_letter s.[0] && s.[1] = ':'
+    String.length s >= 2 && is_letter (s$0) && s$1 = ':'
   let drive_and_path s =
     if has_drive s
     then (String.sub s 0 2, String.sub s 2 (String.length s - 2))
@@ -201,7 +203,7 @@ let chop_suffix name suff =
 let chop_extension name =
   let rec search_dot i =
     if i < 0 || is_dir_sep name i then invalid_arg "Filename.chop_extension"
-    else if name.[i] = '.' then String.sub name 0 i
+    else if name$i = '.' then String.sub name 0 i
     else search_dot (i - 1) in
   search_dot (String.length name - 1)
 

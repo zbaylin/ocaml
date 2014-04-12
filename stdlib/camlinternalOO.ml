@@ -69,7 +69,7 @@ external ret : (obj -> 'a) -> closure = "%identity"
 let public_method_label s : tag =
   let accu = ref 0 in
   for i = 0 to String.length s - 1 do
-    accu := 223 * !accu + Char.code s.[i]
+    accu := 223 * !accu + Char.code (String.get s i)
   done;
   (* reduce to 31 bits *)
   accu := !accu land (1 lsl 31 - 1);

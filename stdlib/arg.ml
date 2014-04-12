@@ -234,7 +234,7 @@ let second_word s =
   let len = String.length s in
   let rec loop n =
     if n >= len then len
-    else if s.[n] = ' ' then loop (n+1)
+    else if String.get s n = ' ' then loop (n+1)
     else n
   in
   try loop (String.index s ' ')

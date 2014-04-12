@@ -81,7 +81,7 @@ let new_engine tbl state buf =
 
 let lex_refill read_fun aux_buffer lexbuf =
   let read =
-    read_fun aux_buffer (String.length aux_buffer) in
+    read_fun aux_buffer (Bytearray.length aux_buffer) in
   let n =
     if read > 0
     then read
@@ -92,29 +92,29 @@ let lex_refill read_fun aux_buffer lexbuf =
         ^       ^                     ^           ^
         0    start_pos             buffer_end    String.length buffer
   *)
-  if lexbuf.lex_buffer_len + n > String.length lexbuf.lex_buffer then begin
+  if lexbuf.lex_buffer_len + n > Bytearray.length lexbuf.lex_buffer then begin
     (* There is not enough space at the end of the buffer *)
     if lexbuf.lex_buffer_len - lexbuf.lex_start_pos + n
-       <= String.length lexbuf.lex_buffer
+       <= Bytearray.length lexbuf.lex_buffer
     then begin
       (* But there is enough space if we reclaim the junk at the beginning
          of the buffer *)
-      String.blit lexbuf.lex_buffer lexbuf.lex_start_pos
-                  lexbuf.lex_buffer 0
-                  (lexbuf.lex_buffer_len - lexbuf.lex_start_pos)
+      Bytearray.blit lexbuf.lex_buffer lexbuf.lex_start_pos
+                     lexbuf.lex_buffer 0
+                     (lexbuf.lex_buffer_len - lexbuf.lex_start_pos)
     end else begin
       (* We must grow the buffer.  Doubling its size will provide enough
          space since n <= String.length aux_buffer <= String.length buffer.
          Watch out for string length overflow, though. *)
       let newlen =
-        min (2 * String.length lexbuf.lex_buffer) Sys.max_string_length in
+        min (2 * Bytearray.length lexbuf.lex_buffer) Sys.max_string_length in
       if lexbuf.lex_buffer_len - lexbuf.lex_start_pos + n > newlen
       then failwith "Lexing.lex_refill: cannot grow buffer";
-      let newbuf = String.create newlen in
+      let newbuf = Bytearray.create newlen in
       (* Copy the valid data to the beginning of the new buffer *)
-      String.blit lexbuf.lex_buffer lexbuf.lex_start_pos
-                  newbuf 0
-                  (lexbuf.lex_buffer_len - lexbuf.lex_start_pos);
+      Bytearray.blit lexbuf.lex_buffer lexbuf.lex_start_pos
+                     newbuf 0
+                     (lexbuf.lex_buffer_len - lexbuf.lex_start_pos);
       lexbuf.lex_buffer <- newbuf
     end;
     (* Reallocation or not, we have shifted the data left by
@@ -133,9 +133,7 @@ let lex_refill read_fun aux_buffer lexbuf =
     done
   end;
   (* There is now enough space at the end of the buffer *)
-  String.blit aux_buffer 0
-              lexbuf.lex_buffer lexbuf.lex_buffer_len
-              n;
+  Bytearray.blit aux_buffer 0 lexbuf.lex_buffer lexbuf.lex_buffer_len n;
   lexbuf.lex_buffer_len <- lexbuf.lex_buffer_len + n
 
 let zero_pos = {
@@ -146,8 +144,8 @@ let zero_pos = {
 };;
 
 let from_function f =
-  { refill_buff = lex_refill f (String.create 512);
-    lex_buffer = String.create 1024;
+  { refill_buff = lex_refill f (Bytearray.create 512);
+    lex_buffer = Bytearray.create 1024;
     lex_buffer_len = 0;
     lex_abs_pos = 0;
     lex_start_pos = 0;
@@ -165,7 +163,7 @@ let from_channel ic =
 
 let from_string s =
   { refill_buff = (fun lexbuf -> lexbuf.lex_eof_reached <- true);
-    lex_buffer = s ^ "";
+    lex_buffer = Bytearray.of_string s;
     lex_buffer_len = String.length s;
     lex_abs_pos = 0;
     lex_start_pos = 0;
@@ -180,22 +178,16 @@ let from_string s =
 
 let lexeme lexbuf =
   let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
-  let s = String.create len in
-  String.unsafe_blit lexbuf.lex_buffer lexbuf.lex_start_pos s 0 len;
-  s
+  Bytearray.sub_string lexbuf.lex_buffer lexbuf.lex_start_pos len
 
 let sub_lexeme lexbuf i1 i2 =
   let len = i2-i1 in
-  let s = String.create len in
-  String.unsafe_blit lexbuf.lex_buffer i1 s 0 len;
-  s
+  Bytearray.sub_string lexbuf.lex_buffer i1 len
 
 let sub_lexeme_opt lexbuf i1 i2 =
   if i1 >= 0 then begin
     let len = i2-i1 in
-    let s = String.create len in
-    String.unsafe_blit lexbuf.lex_buffer i1 s 0 len;
-    Some s
+    Some (Bytearray.sub_string lexbuf.lex_buffer i1 len)
   end else begin
     None
   end
@@ -210,7 +202,7 @@ let sub_lexeme_char_opt lexbuf i =
 
 
 let lexeme_char lexbuf i =
-  String.get lexbuf.lex_buffer (lexbuf.lex_start_pos + i)
+  Bytearray.get lexbuf.lex_buffer (lexbuf.lex_start_pos + i)
 
 let lexeme_start lexbuf = lexbuf.lex_start_p.pos_cnum;;
 let lexeme_end lexbuf = lexbuf.lex_curr_p.pos_cnum;;

@@ -100,11 +100,11 @@ let parse_string_conversion sfmt =
 let pad_string pad_char p neg s i len =
   if p = len && i = 0 then s else
   if p <= len then String.sub s i len else
-  let res = String.make p pad_char in
+  let res = Bytearray.make p pad_char in
   if neg
   then String.blit s i res 0 len
   else String.blit s i res (p - len) len;
-  res
+  Bytearray.unsafe_to_string res
 ;;
 
 (* Format a string given a %s format, e.g. %40s or %-20s.
@@ -143,7 +143,8 @@ let extract_format fmt start stop widths =
         assert false (* Should not happen since this is ill-typed. *)
       | (c, _) ->
         Buffer.add_char b c;
-        fill_format (succ i) widths in
+        fill_format (succ i) widths
+  in
   fill_format start (List.rev widths);
   Buffer.contents b
 ;;
@@ -152,8 +153,8 @@ let extract_format_int conv fmt start stop widths =
   let sfmt = extract_format fmt start stop widths in
   match conv with
   | 'n' | 'N' ->
-    sfmt.[String.length sfmt - 1] <- 'u';
-    sfmt
+    let len = String.length sfmt in
+    String.sub sfmt 0 (len - 1) ^ "u"
   | _ -> sfmt
 ;;
 
@@ -161,8 +162,8 @@ let extract_format_float conv fmt start stop widths =
   let sfmt = extract_format fmt start stop widths in
   match conv with
   | 'F' ->
-    sfmt.[String.length sfmt - 1] <- 'g';
-    sfmt
+    let len = String.length sfmt in
+    String.sub sfmt 0 (len - 1) ^ "g"
   | _ -> sfmt
 ;;
 
@@ -446,7 +447,7 @@ let format_float_lexeme =
     let l = String.length s in
     let rec valid_float_loop i =
       if i >= l then s ^ "." else
-      match s.[i] with
+      match String.get s i with
       (* Sure, this is already a valid float lexeme. *)
       | '.' | 'e' | 'E' -> s
       | _ -> valid_float_loop (i + 1) in

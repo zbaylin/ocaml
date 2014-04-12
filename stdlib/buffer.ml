@@ -14,41 +14,38 @@
 (* Extensible buffers *)
 
 type t =
- {mutable buffer : string;
+ {mutable buffer : bytearray;
   mutable position : int;
   mutable length : int;
-  initial_buffer : string}
+  initial_buffer : bytearray}
 
 let create n =
  let n = if n < 1 then 1 else n in
  let n = if n > Sys.max_string_length then Sys.max_string_length else n in
- let s = String.create n in
+ let s = Bytearray.create n in
  {buffer = s; position = 0; length = n; initial_buffer = s}
 
-let contents b = String.sub b.buffer 0 b.position
+let contents b = Bytearray.sub_string b.buffer 0 b.position
+let to_bytearray b = Bytearray.sub b.buffer 0 b.position
 
 let sub b ofs len =
   if ofs < 0 || len < 0 || ofs > b.position - len
   then invalid_arg "Buffer.sub"
-  else begin
-    let r = String.create len in
-    String.unsafe_blit b.buffer ofs r 0 len;
-    r
-  end
+  else Bytearray.sub_string b.buffer ofs len
 ;;
 
 let blit src srcoff dst dstoff len =
   if len < 0 || srcoff < 0 || srcoff > src.position - len
-             || dstoff < 0 || dstoff > (String.length dst) - len
+             || dstoff < 0 || dstoff > (Bytearray.length dst) - len
   then invalid_arg "Buffer.blit"
   else
-    String.blit src.buffer srcoff dst dstoff len
+    Bytearray.blit src.buffer srcoff dst dstoff len
 ;;
 
 let nth b ofs =
   if ofs < 0 || ofs >= b.position then
    invalid_arg "Buffer.nth"
-  else String.unsafe_get b.buffer ofs
+  else Bytearray.unsafe_get b.buffer ofs
 ;;
 
 let length b = b.position
@@ -57,7 +54,7 @@ let clear b = b.position <- 0
 
 let reset b =
   b.position <- 0; b.buffer <- b.initial_buffer;
-  b.length <- String.length b.buffer
+  b.length <- Bytearray.length b.buffer
 
 let resize b more =
   let len = b.length in
@@ -68,15 +65,15 @@ let resize b more =
     then new_len := Sys.max_string_length
     else failwith "Buffer.add: cannot grow buffer"
   end;
-  let new_buffer = String.create !new_len in
-  String.blit b.buffer 0 new_buffer 0 b.position;
+  let new_buffer = Bytearray.create !new_len in
+  Bytearray.blit b.buffer 0 new_buffer 0 b.position;
   b.buffer <- new_buffer;
   b.length <- !new_len
 
 let add_char b c =
   let pos = b.position in
   if pos >= b.length then resize b 1;
-  String.unsafe_set b.buffer pos c;
+  Bytearray.unsafe_set b.buffer pos c;
   b.position <- pos + 1
 
 let add_substring b s offset len =
@@ -87,6 +84,9 @@ let add_substring b s offset len =
   String.unsafe_blit s offset b.buffer b.position len;
   b.position <- new_position
 
+let add_subarray b s offset len =
+  add_substring b (Bytearray.unsafe_to_string s) offset len
+
 let add_string b s =
   let len = String.length s in
   let new_position = b.position + len in
@@ -95,7 +95,7 @@ let add_string b s =
   b.position <- new_position
 
 let add_buffer b bs =
-  add_substring b bs.buffer 0 bs.position
+  add_subarray b bs.buffer 0 bs.position
 
 let add_channel b ic len =
   if len < 0 || len > Sys.max_string_length then   (* PR#5004 *)
@@ -119,8 +119,8 @@ let closing = function
 let advance_to_closing opening closing k s start =
   let rec advance k i lim =
     if i >= lim then raise Not_found else
-    if s.[i] = opening then advance (k + 1) (i + 1) lim else
-    if s.[i] = closing then
+    if String.get s i = opening then advance (k + 1) (i + 1) lim else
+    if String.get s i = closing then
       if k = 0 then i else advance (k - 1) (i + 1) lim
     else advance k (i + 1) lim in
   advance k start (String.length s);;
@@ -128,7 +128,7 @@ let advance_to_closing opening closing k s start =
 let advance_to_non_alpha s start =
   let rec advance i lim =
     if i >= lim then lim else
-    match s.[i] with
+    match String.get s i with
     | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> advance (i + 1) lim
     | _ -> i in
   advance start (String.length s);;
@@ -136,7 +136,7 @@ let advance_to_non_alpha s start =
 (* We are just at the beginning of an ident in s, starting at start. *)
 let find_ident s start lim =
   if start >= lim then raise Not_found else
-  match s.[start] with
+  match String.get s start with
   (* Parenthesized ident ? *)
   | '(' | '{' as c ->
      let new_start = start + 1 in
@@ -153,7 +153,7 @@ let add_substitute b f s =
   let lim = String.length s in
   let rec subst previous i =
     if i < lim then begin
-      match s.[i] with
+      match String.get s i with
       | '$' as current when previous = '\\' ->
          add_char b current;
          subst ' ' (i + 1)

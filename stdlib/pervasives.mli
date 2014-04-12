@@ -674,11 +674,15 @@ val output_char : out_channel -> char -> unit
 val output_string : out_channel -> string -> unit
 (** Write the string on the given output channel. *)
 
-val output : out_channel -> string -> int -> int -> unit
-(** [output oc buf pos len] writes [len] characters from string [buf],
+val output : out_channel -> bytearray -> int -> int -> unit
+(** [output oc buf pos len] writes [len] characters from bytearray [buf],
    starting at offset [pos], to the given output channel [oc].
    Raise [Invalid_argument "output"] if [pos] and [len] do not
-   designate a valid substring of [buf]. *)
+   designate a valid range of [buf]. *)
+
+val output_substring : out_channel -> string -> int -> int -> unit
+(** Same as [output] but take a string as argument instead of
+   a bytearray. *)
 
 val output_byte : out_channel -> int -> unit
 (** Write one 8-bit integer (as the single character with that code)
@@ -793,6 +797,12 @@ val really_input : in_channel -> bytearray -> int -> int -> unit
    characters have been read.
    Raise [Invalid_argument "really_input"] if
    [pos] and [len] do not designate a valid range of [buf]. *)
+
+val really_input_string : in_channel -> int -> string
+(** [really_input_string ic len] reads [len] characters from channel [ic]
+   and returns them in a new string.
+   Raise [End_of_file] if the end of file is reached before [len]
+   characters have been read. *)
 
 val input_byte : in_channel -> int
 (** Same as {!Pervasives.input_char}, but return the 8-bit integer representing

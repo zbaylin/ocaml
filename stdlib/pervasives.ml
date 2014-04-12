@@ -23,7 +23,6 @@ let () =
   register_named_value "Pervasives.array_bound_error"
     (Invalid_argument "index out of bounds")
 
-
 external raise : exn -> 'a = "%raise"
 external raise_notrace : exn -> 'a = "%raise_notrace"
 
@@ -83,7 +82,7 @@ external succ : int -> int = "%succint"
 external pred : int -> int = "%predint"
 external ( + ) : int -> int -> int = "%addint"
 external ( - ) : int -> int -> int = "%subint"
-external ( *  ) : int -> int -> int = "%mulint"
+external ( * ) : int -> int -> int = "%mulint"
 external ( / ) : int -> int -> int = "%divint"
 external ( mod ) : int -> int -> int = "%modint"
 
@@ -164,19 +163,22 @@ type fpclass =
   | FP_nan
 external classify_float : float -> fpclass = "caml_classify_float"
 
-(* String operations -- more in module String *)
+(* String and bytearray operations -- more in modules String and Bytearray *)
 
 external string_length : string -> int = "%string_length"
-external string_create : int -> bytearray = "caml_create_string"
+external bytearray_length : bytearray -> int = "%string_length"
+external bytearray_create : int -> bytearray = "caml_create_string"
 external string_blit : string -> int -> bytearray -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
+external bytearray_unsafe_to_string : bytearray -> string = "%identity"
+external bytearray_unsafe_of_string : string -> bytearray = "%identity"
 
 let ( ^ ) s1 s2 =
   let l1 = string_length s1 and l2 = string_length s2 in
-  let s = string_create (l1 + l2) in
+  let s = bytearray_create (l1 + l2) in
   string_blit s1 0 s 0 l1;
   string_blit s2 0 s l1 l2;
-  s
+  bytearray_unsafe_to_string s
 
 (* Character operations -- more in module Char *)
 
@@ -211,15 +213,13 @@ let string_of_int n =
 
 external int_of_string : string -> int = "caml_int_of_string"
 
-module String = struct
-  external get : string -> int -> char = "%string_safe_get"
-end
+external string_get : string -> int -> char = "%string_safe_get"
 
 let valid_float_lexem s =
   let l = string_length s in
   let rec loop i =
     if i >= l then s ^ "." else
-    match s.[i] with
+    match string_get s i with
     | '0' .. '9' | '-' -> loop (i + 1)
     | _ -> s
   in
@@ -279,18 +279,21 @@ let flush_all () =
     | a :: l -> (try flush a with _ -> ()); iter l
   in iter (out_channels_list ())
 
-external unsafe_output : out_channel -> string -> int -> int -> unit
+external unsafe_output : out_channel -> bytearray -> int -> int -> unit
                        = "caml_ml_output"
 
 external output_char : out_channel -> char -> unit = "caml_ml_output_char"
 
 let output_string oc s =
-  unsafe_output oc s 0 (string_length s)
+  unsafe_output oc (bytearray_unsafe_of_string s) 0 (string_length s)
 
 let output oc s ofs len =
-  if ofs < 0 || len < 0 || ofs > string_length s - len
+  if ofs < 0 || len < 0 || ofs > bytearray_length s - len
   then invalid_arg "output"
   else unsafe_output oc s ofs len
+
+let output_substring oc s ofs len =
+  output oc (bytearray_unsafe_of_string s) ofs len
 
 external output_byte : out_channel -> int -> unit = "caml_ml_output_char"
 external output_binary_int : out_channel -> int -> unit = "caml_ml_output_int"
@@ -323,11 +326,11 @@ let open_in_bin name =
 
 external input_char : in_channel -> char = "caml_ml_input_char"
 
-external unsafe_input : in_channel -> string -> int -> int -> int
+external unsafe_input : in_channel -> bytearray -> int -> int -> int
                       = "caml_ml_input"
 
 let input ic s ofs len =
-  if ofs < 0 || len < 0 || ofs > string_length s - len
+  if ofs < 0 || len < 0 || ofs > bytearray_length s - len
   then invalid_arg "input"
   else unsafe_input ic s ofs len
 
@@ -340,39 +343,46 @@ let rec unsafe_really_input ic s ofs len =
   end
 
 let really_input ic s ofs len =
-  if ofs < 0 || len < 0 || ofs > string_length s - len
+  if ofs < 0 || len < 0 || ofs > bytearray_length s - len
   then invalid_arg "really_input"
   else unsafe_really_input ic s ofs len
 
+let really_input_string ic len =
+  let s = bytearray_create len in
+  really_input ic s 0 len;
+  bytearray_unsafe_to_string s
+
 external input_scan_line : in_channel -> int = "caml_ml_input_scan_line"
+external bytearray_blit : bytearray -> int -> bytearray -> int -> int -> unit
+                        = "caml_blit_string" "noalloc"
 
 let input_line chan =
   let rec build_result buf pos = function
     [] -> buf
   | hd :: tl ->
-      let len = string_length hd in
-      string_blit hd 0 buf (pos - len) len;
+      let len = bytearray_length hd in
+      bytearray_blit hd 0 buf (pos - len) len;
       build_result buf (pos - len) tl in
   let rec scan accu len =
     let n = input_scan_line chan in
     if n = 0 then begin                   (* n = 0: we are at EOF *)
       match accu with
         [] -> raise End_of_file
-      | _  -> build_result (string_create len) len accu
+      | _  -> build_result (bytearray_create len) len accu
     end else if n > 0 then begin          (* n > 0: newline found in buffer *)
-      let res = string_create (n - 1) in
+      let res = bytearray_create (n - 1) in
       ignore (unsafe_input chan res 0 (n - 1));
       ignore (input_char chan);           (* skip the newline *)
       match accu with
         [] -> res
       |  _ -> let len = len + n - 1 in
-              build_result (string_create len) len (res :: accu)
+              build_result (bytearray_create len) len (res :: accu)
     end else begin                        (* n < 0: newline not found *)
-      let beg = string_create (-n) in
+      let beg = bytearray_create (-n) in
       ignore(unsafe_input chan beg 0 (-n));
       scan (beg :: accu) (len - n)
     end
-  in scan [] 0
+  in bytearray_unsafe_to_string (scan [] 0)
 
 external input_byte : in_channel -> int = "caml_ml_input_char"
 external input_binary_int : in_channel -> int = "caml_ml_input_int"
@@ -455,12 +465,9 @@ let (( ^^ ) :
     string_to_format (format_to_string fmt1 ^ "%," ^ format_to_string fmt2)
 ;;
 
-let string_of_format fmt =
-  let s = format_to_string fmt in
-  let l = string_length s in
-  let r = string_create l in
-  string_blit s 0 r 0 l;
-  r
+(* Have to return a copy for compatibility with unsafe-string mode *)
+(* String.copy is not available here, so use ^ to make a copy of the string *)
+let string_of_format fmt = format_to_string fmt ^ ""
 
 (* Miscellaneous *)
 

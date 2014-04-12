@@ -40,6 +40,10 @@ val contents : t -> string
 (** Return a copy of the current contents of the buffer.
    The buffer itself is unchanged. *)
 
+val to_bytearray : t -> bytearray
+(** Return a copy of the current contents of the buffer.
+   The buffer itself is unchanged. *)
+
 val sub : t -> int -> int -> string
 (** [Buffer.sub b off len] returns (a copy of) the bytes from the
 current contents of the buffer [b] starting at offset [off] of length
@@ -83,6 +87,10 @@ val add_string : t -> string -> unit
 val add_substring : t -> string -> int -> int -> unit
 (** [add_substring b s ofs len] takes [len] characters from offset
    [ofs] in string [s] and appends them at the end of the buffer [b]. *)
+
+val add_subarray : t -> bytearray -> int -> int -> unit
+(** [add_substring b s ofs len] takes [len] characters from offset
+   [ofs] in bytearray [s] and appends them at the end of the buffer [b]. *)
 
 val add_substitute : t -> (string -> string) -> string -> unit
 (** [add_substitute b f s] appends the string pattern [s] at the end

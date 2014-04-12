@@ -151,6 +151,9 @@ let mkexp_constraint e (t1, t2) =
 let array_function str name =
   ghloc (Ldot(Lident str, (if !Clflags.fast then "unsafe_" ^ name else name)))
 
+let string_function name =
+  array_function (if !Clflags.unsafe_string then "String" else "Bytearray") name
+
 let syntax_error () =
   raise Syntaxerr.Escape_error
 
@@ -1144,7 +1147,7 @@ expr:
       { mkexp(Pexp_apply(ghexp(Pexp_ident(array_function "Array" "set")),
                          ["",$1; "",$4; "",$7])) }
   | simple_expr DOT LBRACKET seq_expr RBRACKET LESSMINUS expr
-      { mkexp(Pexp_apply(ghexp(Pexp_ident(array_function "Bytearray" "set")),
+      { mkexp(Pexp_apply(ghexp(Pexp_ident(string_function "set")),
                          ["",$1; "",$4; "",$7])) }
   | simple_expr DOT LBRACE expr RBRACE LESSMINUS expr
       { bigarray_set $1 $4 $7 }
@@ -1195,7 +1198,7 @@ simple_expr:
   | simple_expr DOT LPAREN seq_expr error
       { unclosed "(" 3 ")" 5 }
   | simple_expr DOT LBRACKET seq_expr RBRACKET
-      { mkexp(Pexp_apply(ghexp(Pexp_ident(array_function "Bytearray" "get")),
+      { mkexp(Pexp_apply(ghexp(Pexp_ident(string_function "get")),
                          ["",$1; "",$4])) }
   | simple_expr DOT LBRACKET seq_expr error
       { unclosed "[" 3 "]" 5 }
