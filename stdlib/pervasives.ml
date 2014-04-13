@@ -399,6 +399,7 @@ external set_binary_mode_in : in_channel -> bool -> unit
 
 let print_char c = output_char stdout c
 let print_string s = output_string stdout s
+let print_bytearray s = output stdout s 0 (bytearray_length s)
 let print_int i = output_string stdout (string_of_int i)
 let print_float f = output_string stdout (string_of_float f)
 let print_endline s =

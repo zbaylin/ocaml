@@ -113,7 +113,7 @@ let scan_file obj_name tolink =
       raise(Error(File_not_found obj_name)) in
   let ic = open_in_bin file_name in
   try
-    let buffer = input_bytes ic (String.length cmo_magic_number) in
+    let buffer = really_input_string ic (String.length cmo_magic_number) in
     if buffer = cmo_magic_number then begin
       (* This is a .cmo file. It must be linked in any case.
          Read the relocation information to see which modules it

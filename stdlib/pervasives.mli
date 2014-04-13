@@ -566,6 +566,9 @@ val print_char : char -> unit
 val print_string : string -> unit
 (** Print a string on standard output. *)
 
+val print_bytearray : bytearray -> unit
+(** Print a bytearray on standard output. *)
+
 val print_int : int -> unit
 (** Print an integer, in decimal, on standard output. *)
 

@@ -101,7 +101,9 @@ let read_member_info file = (
     if Filename.check_suffix file ".cmo" then begin
     let ic = open_in_bin file in
     try
-      let buffer = input_bytes ic (String.length Config.cmo_magic_number) in
+      let buffer =
+        really_input_string ic (String.length Config.cmo_magic_number)
+      in
       if buffer <> Config.cmo_magic_number then
         raise(Error(Not_an_object_file file));
       let compunit_pos = input_binary_int ic in

@@ -152,7 +152,9 @@ let digest_interface unit loadpath =
       raise (Error(File_not_found shortname)) in
   let ic = open_in_bin filename in
   try
-    let buffer = Misc.input_bytes ic (String.length Config.cmi_magic_number) in
+    let buffer =
+      really_input_string ic (String.length Config.cmi_magic_number)
+    in
     if buffer <> Config.cmi_magic_number then begin
       close_in ic;
       raise(Error(Corrupted_interface filename))
@@ -242,7 +244,7 @@ let loadfile file_name =
   seek_in ic 0;
   try
     let buffer =
-      try Misc.input_bytes ic (String.length Config.cmo_magic_number)
+      try really_input_string ic (String.length Config.cmo_magic_number)
       with End_of_file -> raise (Error (Not_a_bytecode_file file_name))
     in
     if buffer = Config.cmo_magic_number then begin
