@@ -62,6 +62,6 @@ let from_hex s =
   let byte i = digit (String.get s i) lsl 4 + digit (String.get s (i+1)) in
   let result = Bytearray.create 16 in
   for i = 0 to 15 do
-    result.[i] <- Char.chr (byte (2 * i));
+    Bytearray.set result i (Char.chr (byte (2 * i)));
   done;
   Bytearray.unsafe_to_string result

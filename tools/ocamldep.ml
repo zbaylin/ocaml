@@ -160,11 +160,11 @@ let print_filename s =
     let rec loop i j =
       if i >= String.length s then ()
       else if String.get s i = ' ' then begin
-        result.[j] <- '\\';
-        result.[j+1] <- ' ';
+        Bytearray.set result j '\\';
+        Bytearray.set result (j+1) ' ';
         loop (i+1) (j+2);
       end else begin
-        result.[j] <- String.get s i;
+        Bytearray.set result j s.[i];
         loop (i+1) (j+1);
       end
     in

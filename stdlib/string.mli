@@ -243,4 +243,3 @@ external unsafe_blit :
 external unsafe_fill :
   bytearray -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
   [@@deprecated]
-

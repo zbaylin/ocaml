@@ -217,8 +217,11 @@ let transl_path s =
     | "Win32" ->
         let s = Bytearray.of_string s in
         let rec aux i =
-          if i = Bytearray.length s || s.[i] = ' ' then s
-          else (if s.[i] = '/' then s.[i] <- '\\'; aux (i + 1))
+          if i = Bytearray.length s || Bytearray.get s i = ' ' then s
+          else begin
+            if Bytearray.get s i = '/' then Bytearray.set s i '\\';
+            aux (i + 1)
+          end
         in Bytearray.to_string (aux 0)
     | _ -> s
 

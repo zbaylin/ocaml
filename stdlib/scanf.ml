@@ -325,12 +325,12 @@ module Scanning : SCANNING = struct
     let lim = ref 0 in
     let eof = ref false in
     let next () =
-      if !i < !lim then begin let c = buf.[!i] in incr i; c end else
+      if !i < !lim then begin let c = Bytearray.get buf !i in incr i; c end else
       if !eof then raise End_of_file else begin
         lim := input ic buf 0 len;
         if !lim = 0 then begin eof := true; scan_close_ic ic end else begin
           i := 1;
-          buf.[0]
+          Bytearray.get buf 0
         end
       end in
     create iname next
@@ -1063,14 +1063,14 @@ let get_bit_of_byte byte idx = (byte lsr idx) land 1;;
 let set_bit_of_range r c b =
   let idx = c land 0x7 in
   let ydx = c lsr 3 in
-  let byte = r.[ydx] in
-  r.[ydx] <- char_of_int (set_bit_of_byte (int_of_char byte) idx b)
+  let byte = Bytearray.get r ydx in
+  Bytearray.set r ydx (char_of_int (set_bit_of_byte (int_of_char byte) idx b))
 ;;
 
 let get_bit_of_range r c =
   let idx = c land 0x7 in
   let ydx = c lsr 3 in
-  let byte = r.[ydx] in
+  let byte = Bytearray.get r ydx in
   get_bit_of_byte (int_of_char byte) idx
 ;;
 

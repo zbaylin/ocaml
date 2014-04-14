@@ -192,11 +192,11 @@ let sub_lexeme_opt lexbuf i1 i2 =
     None
   end
 
-let sub_lexeme_char lexbuf i = lexbuf.lex_buffer.[i]
+let sub_lexeme_char lexbuf i = Bytearray.get lexbuf.lex_buffer i
 
 let sub_lexeme_char_opt lexbuf i =
   if i >= 0 then
-    Some lexbuf.lex_buffer.[i]
+    Some (Bytearray.get lexbuf.lex_buffer i)
   else
     None
 

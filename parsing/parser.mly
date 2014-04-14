@@ -152,7 +152,8 @@ let array_function str name =
   ghloc (Ldot(Lident str, (if !Clflags.fast then "unsafe_" ^ name else name)))
 
 let string_function name =
-  array_function (if !Clflags.unsafe_string then "String" else "Bytearray") name
+  array_function (if true then "String" else "Bytearray") name
+(* FIXME remove this function if we decide to keep s.[i] for strings *)
 
 let syntax_error () =
   raise Syntaxerr.Escape_error

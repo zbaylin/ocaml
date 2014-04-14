@@ -34,7 +34,7 @@ let store c =
       let newbuffer = Bytearray.create (2 * !bufpos) in
       Bytearray.blit !buffer 0 newbuffer 0 !bufpos; buffer := newbuffer
     end;
-  !buffer.[!bufpos] <- c;
+  Bytearray.set !buffer !bufpos c;
   incr bufpos
 
 let get_string () =
