@@ -155,7 +155,7 @@ let of_string s =
     *)
     let c = !count in
     if c < String.length s
-    then (incr count; Some (String.get s c))
+    then (incr count; Some s.[c])
     else None)
 ;;
 

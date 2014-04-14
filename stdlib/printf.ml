@@ -447,7 +447,7 @@ let format_float_lexeme =
     let l = String.length s in
     let rec valid_float_loop i =
       if i >= l then s ^ "." else
-      match String.get s i with
+      match s.[i] with
       (* Sure, this is already a valid float lexeme. *)
       | '.' | 'e' | 'E' -> s
       | _ -> valid_float_loop (i + 1) in

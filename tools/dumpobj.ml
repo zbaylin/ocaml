@@ -505,7 +505,7 @@ let read_primitive_table ic len =
   let p = really_input_string ic len in
   let rec split beg cur =
     if cur >= len then []
-    else if String.get p cur = '\000' then
+    else if p.[cur] = '\000' then
       String.sub p beg (cur - beg) :: split (cur + 1) (cur + 1)
     else
       split beg (cur + 1) in

@@ -38,10 +38,8 @@ module State = struct
   let full_init s seed =
     let combine accu x = Digest.string (accu ^ string_of_int x) in
     let extract d =
-      Char.code (String.get d 0)
-      + (Char.code (String.get d 1) lsl 8)
-      + (Char.code (String.get d 2) lsl 16)
-      + (Char.code (String.get d 3) lsl 24)
+      Char.code d.[0] + (Char.code d.[1] lsl 8) + (Char.code d.[2] lsl 16)
+      + (Char.code d.[3] lsl 24)
     in
     let seed = if Array.length seed = 0 then [| 0 |] else seed in
     let l = Array.length seed in

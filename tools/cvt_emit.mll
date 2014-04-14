@@ -23,11 +23,11 @@ let print_unescaped_string s =
   let l = String.length s in
   let i = ref 0 in
   while !i < l do
-    if String.get s !i = '\\'
+    if s.[!i] = '\\'
     && !i+1 < l
-    && (let c = String.get s (!i+1) in c = '{' || c = '`') (* ` *)
+    && (let c = s.[!i+1] in c = '{' || c = '`') (* ` *)
     then i := !i+1;
-    print_char (String.get s !i);
+    print_char s.[!i];
     i := !i + 1
   done
 }
@@ -62,10 +62,8 @@ and command = parse
         { let s = Lexing.lexeme lexbuf in
           add_semicolon();
           (* Optimise one-character strings *)
-          if String.length s = 1 && String.get s 0 <> '\\'
-               && String.get s 0 <> '\''
-             || String.length s = 2 && String.get s 0 = '\\'
-                  && String.get s 1 <> '`' && String.get s 1 <> '{'
+          if String.length s = 1 && s.[0] <> '\\' && s.[0] <> '\''
+          || String.length s = 2 && s.[0] = '\\' && s.[1] <> '`' && s.[1]<>'{'
           (* ` *)
           then begin
             print_string "emit_char '";

@@ -25,7 +25,7 @@ let input_stringlist ic len =
   let get_string_list sect len =
     let rec fold s e acc =
       if e != len then
-        if String.get sect e = '\000' then
+        if sect.[e] = '\000' then
           fold (e+1) (e+1) (String.sub sect s (e-s) :: acc)
         else fold s (e+1) acc
       else acc

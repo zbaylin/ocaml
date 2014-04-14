@@ -767,7 +767,7 @@ let pp_print_text ppf s =
     incr right; left := !right;
   in
   while (!right <> len) do
-    match String.get s !right with
+    match s.[!right] with
       | '\n' ->
         flush ();
         pp_force_newline ppf ()

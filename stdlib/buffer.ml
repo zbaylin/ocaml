@@ -119,8 +119,8 @@ let closing = function
 let advance_to_closing opening closing k s start =
   let rec advance k i lim =
     if i >= lim then raise Not_found else
-    if String.get s i = opening then advance (k + 1) (i + 1) lim else
-    if String.get s i = closing then
+    if s.[i] = opening then advance (k + 1) (i + 1) lim else
+    if s.[i] = closing then
       if k = 0 then i else advance (k - 1) (i + 1) lim
     else advance k (i + 1) lim in
   advance k start (String.length s);;
@@ -128,7 +128,7 @@ let advance_to_closing opening closing k s start =
 let advance_to_non_alpha s start =
   let rec advance i lim =
     if i >= lim then lim else
-    match String.get s i with
+    match s.[i] with
     | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> advance (i + 1) lim
     | _ -> i in
   advance start (String.length s);;
@@ -136,7 +136,7 @@ let advance_to_non_alpha s start =
 (* We are just at the beginning of an ident in s, starting at start. *)
 let find_ident s start lim =
   if start >= lim then raise Not_found else
-  match String.get s start with
+  match s.[start] with
   (* Parenthesized ident ? *)
   | '(' | '{' as c ->
      let new_start = start + 1 in
@@ -153,7 +153,7 @@ let add_substitute b f s =
   let lim = String.length s in
   let rec subst previous i =
     if i < lim then begin
-      match String.get s i with
+      match s.[i] with
       | '$' as current when previous = '\\' ->
          add_char b current;
          subst ' ' (i + 1)

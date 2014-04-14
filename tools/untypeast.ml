@@ -160,7 +160,7 @@ and untype_pattern pat =
       Tpat_any -> Ppat_any
     | Tpat_var (id, name) ->
         begin
-          match String.get (Ident.name id) 0 with
+          match (Ident.name id).[0] with
             'A'..'Z' ->
               Ppat_unpack name
           | _ ->

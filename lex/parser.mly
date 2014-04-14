@@ -24,10 +24,10 @@ let regexp_for_string s =
   let rec re_string n =
     if n >= String.length s then Epsilon
     else if succ n = String.length s then
-      Characters (Cset.singleton (Char.code (String.get s n)))
+      Characters (Cset.singleton (Char.code s.[n]))
     else
       Sequence
-        (Characters(Cset.singleton (Char.code (String.get s n))),
+        (Characters(Cset.singleton (Char.code s.[n])),
          re_string (succ n))
   in re_string 0
 

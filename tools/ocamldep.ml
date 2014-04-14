@@ -67,7 +67,7 @@ let add_to_load_path dir =
     error_occurred := true
 
 let add_to_synonym_list synonyms suffix =
-  if (String.length suffix) > 1 && String.get suffix 0 = '.' then
+  if (String.length suffix) > 1 && suffix.[0] = '.' then
     synonyms := suffix :: !synonyms
   else begin
     Format.fprintf Format.err_formatter "@[Bad suffix: '%s'@]@." suffix;
@@ -152,14 +152,14 @@ let print_filename s =
   end else begin
     let rec count n i =
       if i >= String.length s then n
-      else if String.get s i = ' ' then count (n+1) (i+1)
+      else if s.[i] = ' ' then count (n+1) (i+1)
       else count n (i+1)
     in
     let spaces = count 0 0 in
     let result = Bytearray.create (String.length s + spaces) in
     let rec loop i j =
       if i >= String.length s then ()
-      else if String.get s i = ' ' then begin
+      else if s.[i] = ' ' then begin
         Bytearray.set result j '\\';
         Bytearray.set result (j+1) ' ';
         loop (i+1) (j+2);
@@ -190,12 +190,11 @@ let print_raw_dependencies source_file deps =
   print_filename source_file; print_string depends_on;
   Depend.StringSet.iter
     (fun dep ->
-      if String.length dep > 0
-         && String.get dep 0 >= 'A'
-         && String.get dep 0 <= 'Z' then begin
-        print_char ' ';
-        print_string dep
-      end)
+      if (String.length dep > 0)
+          && (match dep.[0] with 'A'..'Z' -> true | _ -> false) then begin
+            print_char ' ';
+            print_string dep
+          end)
     deps;
   print_char '\n'
 
