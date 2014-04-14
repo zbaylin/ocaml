@@ -119,14 +119,14 @@ val for4: 'a * 'b * 'c * 'd -> 'd
 
 module LongString :
   sig
-    type t = string array
+    type t = bytearray array
     val create : int -> t
     val length : t -> int
     val get : t -> int -> char
     val set : t -> int -> char -> unit
     val blit : t -> int -> t -> int -> int -> unit
     val output : out_channel -> t -> int -> int -> unit
-    val unsafe_blit_to_string : t -> int -> string -> int -> int -> unit
+    val unsafe_blit_to_bytearray : t -> int -> bytearray -> int -> int -> unit
     val input_bytes : in_channel -> int -> t
   end
 
