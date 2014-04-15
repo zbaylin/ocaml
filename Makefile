@@ -81,7 +81,11 @@ BYTECOMP=bytecomp/meta.cmo bytecomp/instruct.cmo bytecomp/bytegen.cmo \
 
 ASMCOMP=asmcomp/arch.cmo asmcomp/debuginfo.cmo \
   asmcomp/cmm.cmo asmcomp/printcmm.cmo \
-  asmcomp/reg.cmo asmcomp/mach.cmo asmcomp/proc.cmo \
+  asmcomp/reg.cmo asmcomp/mach.cmo \
+  asmcomp/intel_proc.cmo \
+  asmcomp/intel_gas.cmo \
+  asmcomp/intel_masm.cmo \
+  asmcomp/proc.cmo \
   asmcomp/clambda.cmo asmcomp/printclambda.cmo asmcomp/compilenv.cmo \
   asmcomp/closure.cmo asmcomp/cmmgen.cmo \
   asmcomp/printmach.cmo asmcomp/selectgen.cmo asmcomp/selection.cmo \
@@ -91,9 +95,6 @@ ASMCOMP=asmcomp/arch.cmo asmcomp/debuginfo.cmo \
   asmcomp/reloadgen.cmo asmcomp/reload.cmo \
   asmcomp/printlinear.cmo asmcomp/linearize.cmo \
   asmcomp/schedgen.cmo asmcomp/scheduling.cmo \
-  asmcomp/intel_proc.cmo \
-  asmcomp/intel_gas.cmo \
-  asmcomp/intel_masm.cmo \
   asmcomp/emitaux.cmo \
   asmcomp/emit.cmo \
   asmcomp/asmgen.cmo \

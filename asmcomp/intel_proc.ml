@@ -34,7 +34,7 @@ type condition =
   | NLE | G
 
 type locality =
-    Loc_unknown
+    Loc_unknown of int (* position of instruction *)
   | Loc_near (* 8 bits offset *)
   | Loc_far  (* 32 bits offset *)
 
@@ -62,136 +62,6 @@ type data_type = (* only used for MASM *)
 
 type suffix = B | W | L | Q
 
-type instr =
-    Segment of segment_type
-  | Global of string
-  | Constant of constant * data_type
-  | Align of bool * int
-  | NewLabel of string * data_type
-  | Bytes of string
-  | Space of int
-  | Comment of string
-  | Specific of string
-  | External of string * data_type
-  | Set
-  | End
-
-  | NOP
-
-  | ADD of suffix
-  | SUB of suffix
-  | XOR of suffix
-  | OR of suffix
-  | AND of suffix
-  | CMP of suffix
-
-  | FSTP of suffix option
-  | FSTPS
-
-  | FCOMPP
-  | FCOMPL
-  | FLDL
-  | FLDS
-  | FNSTSW
-  | FNSTCW
-  | FLDCW
-
-  | FCHS
-  | FABS
-  | FADDL
-  | FSUBL
-  | FMULL
-  | FDIVL
-  | FSUBRL
-  | FDIVRL
-  | FILD of suffix
-  | FISTP of suffix
-  | HLT
-
-  | FADDP
-  | FSUBP
-  | FMULP
-  | FDIVP
-  | FSUBRP
-  | FDIVRP
-
-  | FADDS
-  | FSUBS
-  | FMULS
-  | FDIVS
-  | FSUBRS
-  | FDIVRS
-
-  | FLD1
-  | FPATAN
-  | FPTAN
-  | FCOS
-  | FLDLN2
-  | FLDLG2
-  | FXCH
-  | FYL2X
-  | FSIN
-  | FSQRT
-  | FLDZ
-
-  | SAR of suffix
-  | SHR of suffix
-  | SAL of suffix
-  | INC of suffix
-  | DEC of suffix
-  | IMUL of suffix
-  | IDIV of suffix
-  | PUSH of suffix
-  | POP of suffix
-
-  | MOV of suffix
-
-  | MOVZX of suffix * suffix
-  | MOVSX of suffix * suffix
-  | MOVSS
-  | MOVSXD (* MOVSLQ *)
-
-  | MOVSD
-  | ADDSD
-  | SUBSD
-  | MULSD
-  | DIVSD
-  | SQRTSD
-  | ROUNDSD of rounding
-  | NEG
-
-  | CVTSS2SD
-  | CVTSD2SS
-  | CVTSI2SD
-  | CVTSI2SDQ
-  | CVTSD2SI
-  | CVTTSD2SI
-  | UCOMISD
-  | COMISD
-
-  | CALL
-  | JMP of locality
-  | RET
-
-  | TEST of suffix
-  | SET of condition
-  | J of locality * condition
-
-  | CMOV of condition
-  | XORPD
-  | ANDPD
-  | MOVAPD
-  | MOVLPD
-  | MOVABSQ
-
-  | CLTD
-  | LEA of suffix
-  | CQTO
-  | LEAVE
-
-  | XCHG
-  | BSWAP
-
 type register64 =
   | RAX | RBX | RDI | RSI | RDX | RCX | RBP | RSP
   | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
@@ -218,8 +88,8 @@ type 'reg base =
   | BaseReg of 'reg
   | BaseSymbol of string
 
-type 'reg arg =
-  | Constant of int
+type arg =
+  | ConstantInt of int
   | ConstantNat of nativeint
   | LabelRel of data_type * string * int
   | LabelDiff of string * string (* label - label *)
@@ -232,26 +102,145 @@ type 'reg arg =
   | Reg8 of register8
   | Reg16 of register16
   | Reg32 of register32
-  | Reg of 'reg
+  | Reg of register64 (* register with architecture size *)
   | Regf of registerf
   | Mem of
       data_type *
-        'reg * (* scale *) int *
-        'reg base * (* offset *) int
+       register64 * (* scale *) int *
+        register64 base * (* offset *) int
 
-type 'reg instruction = {
-  mutable instr : instr;
-  mutable args : 'reg arg array;
-}
+type instruction =
+    Segment of segment_type
+  | Global of string
+  | Constant of constant * data_type
+  | Align of bool * int
+  | NewLabel of string * data_type
+  | Bytes of string
+  | Space of int
+  | Comment of string
+  | Specific of string
+  | External of string * data_type
+  | Set of arg * arg
+  | End
 
-type 'reg segment = {
-  mutable seg_instrs : 'reg instruction list;
-}
+  | NOP
 
-type 'reg arch = {
-  arch64 : bool;
-  string_of_register : ('reg -> string);
-  bprint_instr : (Buffer.t -> 'reg arch -> 'reg instruction -> unit);
+  | ADD of suffix * arg * arg
+  | SUB of suffix * arg * arg
+  | XOR of suffix * arg * arg
+  | OR of suffix * arg * arg
+  | AND of suffix * arg * arg
+  | CMP of suffix * arg * arg
+
+  | FSTP of suffix option * arg
+  | FSTPS of arg
+
+  | FCOMPP
+  | FCOMPL of arg
+  | FLDL of arg
+  | FLDS of arg
+  | FNSTSW of arg
+  | FNSTCW of arg
+  | FLDCW of arg
+
+  | FCHS of arg option
+  | FABS of arg option
+  | FADDL of arg option
+  | FSUBL of arg option
+  | FMULL of arg option
+  | FDIVL of arg option
+  | FSUBRL of arg option
+  | FDIVRL of arg option
+  | FILD of suffix * arg
+  | FISTP of suffix * arg
+  | HLT
+
+  | FADDP of arg * arg
+  | FSUBP of arg * arg
+  | FMULP of arg * arg
+  | FDIVP of arg * arg
+  | FSUBRP of arg * arg
+  | FDIVRP of arg * arg
+
+  | FADDS of arg option
+  | FSUBS of arg option
+  | FMULS of arg option
+  | FDIVS of arg option
+  | FSUBRS of arg option
+  | FDIVRS of arg option
+
+  | FLD1
+  | FPATAN
+  | FPTAN
+  | FCOS
+  | FLDLN2
+  | FLDLG2
+  | FXCH of arg option
+  | FYL2X
+  | FSIN
+  | FSQRT
+  | FLDZ
+
+  | SAR of suffix * arg * arg
+  | SHR of suffix * arg * arg
+  | SAL of suffix * arg * arg
+  | INC of suffix * arg
+  | DEC of suffix * arg
+  | IMUL of suffix * arg * arg option
+  | IDIV of suffix * arg
+  | PUSH of suffix * arg
+  | POP of suffix * arg
+
+  | MOV of suffix * arg * arg
+
+  | MOVZX of suffix * suffix * arg * arg
+  | MOVSX of suffix * suffix * arg * arg
+  | MOVSS of arg * arg
+  | MOVSXD (* MOVSLQ *) of arg * arg
+
+  | MOVSD of arg * arg
+  | ADDSD of arg * arg
+  | SUBSD of arg * arg
+  | MULSD of arg * arg
+  | DIVSD of arg * arg
+  | SQRTSD of arg * arg
+  | ROUNDSD of rounding
+  | NEG of arg
+
+  | CVTSS2SD of arg * arg
+  | CVTSD2SS of arg * arg
+  | CVTSI2SD of arg * arg
+  | CVTSI2SDQ of arg * arg
+  | CVTSD2SI of arg * arg
+  | CVTTSD2SI of arg * arg
+  | UCOMISD of arg * arg
+  | COMISD of arg * arg
+
+  | CALL of arg
+  | JMP of locality ref * arg
+  | RET
+
+  | TEST of suffix * arg * arg
+  | SET of condition * arg
+  | J of locality ref * condition * arg
+
+  | CMOV of condition
+  | XORPD of arg * arg
+  | ANDPD of arg * arg
+  | MOVAPD of arg * arg
+  | MOVLPD of arg * arg
+  | MOVABSQ of arg * arg
+
+  | CLTD
+  | LEA of suffix * arg * arg
+  | CQTO
+  | LEAVE
+
+  | XCHG of arg * arg
+  | BSWAP of arg
+
+type segment = {
+  mutable seg_instrs : instruction list;
 }
 
 
@@ -300,11 +289,8 @@ let new_segment () = {
 let clear_segment s =
   s.seg_instrs <- []
 
-let emit seg ins args =
-  seg.seg_instrs <- {
-    instr = ins;
-    args = args
-  } :: seg.seg_instrs
+let emit seg ins =
+  seg.seg_instrs <- ins :: seg.seg_instrs
 
 let string_of_string_literal s =
   let b = Buffer.create (String.length s + 2) in
@@ -356,6 +342,46 @@ let string_of_register64 reg64 =
     | R14 -> "r14"
     | R15 -> "r15"
     | RIP -> "rip"
+
+let string_of_register arch64 reg =
+  if arch64 then string_of_register64 reg else
+  match reg with
+    RAX -> "eax"
+  | RBX -> "ebx"
+  | RDI -> "edi"
+  | RSI -> "esi"
+  | RDX -> "edx"
+  | RCX -> "ecx"
+  | RSP -> "esp"
+  | RBP -> "ebp"
+  | R8 -> "r8d"
+  | R9 -> "r9d"
+  | R10 -> "r10d"
+  | R11 -> "r11d"
+  | R12 -> "r12d"
+  | R13 -> "r13d"
+  | R14 -> "r14d"
+  | R15 -> "r15d"
+  | RIP -> assert false
+
+let register reg32 =
+  match reg32 with
+    EAX -> RAX
+  | EBX -> RBX
+  | EDI -> RDI
+  | ESI -> RSI
+  | EDX -> RDX
+  | ECX -> RCX
+  | ESP -> RSP
+  | EBP -> RBP
+  | R8D -> R8
+  | R9D -> R9
+  | R10D -> R10
+  | R11D -> R11
+  | R12D -> R12
+  | R13D -> R13
+  | R14D -> R14
+  | R15D -> R15
 
 let string_of_register8 reg8 = match reg8 with
   | AL -> "al"
@@ -459,13 +485,49 @@ let string_of_condition condition = match condition with
 let tab b = Buffer.add_char b '\t'
 let bprint b s = tab b; Buffer.add_string b s
 
+let arch64 = ref true
 
+(* [print_assembler] is used to decide whether assembly code
+  should be printed in the .s file or not. *)
+let print_assembler = ref true
+
+(* These hooks can be used to insert optimization passes on
+  the assembly code. *)
+let assembler_passes = ref ([] :
+      (instruction list -> instruction list) list)
+
+(* Which asm conventions to use *)
+let masm =
+  match Config.ccomp_type with
+  | "msvc" | "masm" -> true
+  | _      -> false
+
+(* Shall we use an external assembler command ?
+   If [binary_content] contains some data, we can directly
+   save it. Otherwise, we have to ask an external command.
+*)
+let binary_content = ref None
+let assemble_file infile outfile =
+  match !binary_content with
+  | None ->
+     if masm then
+      Ccomp.command (Config.asm ^
+                     Filename.quote outfile ^ " " ^ Filename.quote infile ^
+                     (if !Clflags.verbose then "" else ">NUL"))
+    else
+      Ccomp.command (Config.asm ^ " -o " ^
+                     Filename.quote outfile ^ " " ^ Filename.quote infile)
+  | Some content ->
+    let oc = open_out_bin outfile in
+    output_string oc content;
+    close_out oc;
+    binary_content := None;
+    0
+
+(*
 module MakeEmitter(M : sig
 
       type reg
-      val arch64 : bool
-      val string_of_register : reg -> string
-      val bprint_instr : Buffer.t -> reg arch -> reg instruction -> unit
       val word_size : data_type
 
     end) = struct
@@ -474,45 +536,45 @@ module MakeEmitter(M : sig
     arch64 = M.arch64;
     string_of_register = M.string_of_register;
     bprint_instr = M.bprint_instr;  }
+*)
 
 (* Override emitaux.ml *)
 
-  let emit_int n = Constant n
+  let emit_int n = ConstantInt n
   let emit_nativeint n = ConstantNat n
   let emit_float64_directive f = ConstFloat f
 
-  let (seg : M.reg segment) = new_segment ()
+  let (seg : segment) = new_segment ()
 
   let init_segments () =
     clear_segment seg;
     ()
   let emit = emit seg
 
+(* eta-expand to create ref everytime *)
+  let _jmp arg = emit (JMP (ref (Loc_unknown 0), arg))
+  let _j cond arg = emit (J (ref (Loc_unknown 0), cond, arg))
 
+  let _global s = emit (Global s)
+  let _specific s = emit (Specific s)
+  let _text () = emit (Segment Text)
+  let _data () = emit (Segment Data)
+  let _align n = emit (Align (false, n))
+  let _llabel s = emit (NewLabel (s, NO)) (* local label *)
+  let _comment s = emit (Comment s)
+  let _extrn s ptr = emit (External (s, ptr))
 
-  let _global s = emit (Global s) [||]
-  let _specific s = emit (Specific s) [||]
-  let _text () = emit (Segment Text) [||]
-  let _data () = emit (Segment Data) [||]
-  let _align n = emit (Align (false, n)) [||]
-  let _llabel s = emit (NewLabel (s, NO)) [||] (* local label *)
-  let _label s = emit (NewLabel (s, M.word_size)) [||]
-  let _comment s = emit (Comment s) [||]
-  let _extrn s ptr = emit (External (s, ptr)) [||]
-
-  let _qword cst = emit (Constant (cst, QWORD)) [||]
-  let _long cst = emit (Constant (cst, DWORD)) [||]
-  let _word cst = emit (Constant (cst, WORD)) [||]
-  let _byte n = emit (Constant (n, BYTE)) [||]
-  let _ascii s = emit (Bytes s) [||]
-  let _space n = emit (Space n) [||]
+  let _qword cst = emit (Constant (cst, QWORD))
+  let _long cst = emit (Constant (cst, DWORD))
+  let _word cst = emit (Constant (cst, WORD))
+  let _byte n = emit (Constant (n, BYTE))
+  let _ascii s = emit (Bytes s)
+  let _space n = emit (Space n)
 
 
   (* mnemonics *)
-  let _call = emit CALL
-  let _jmp = emit (JMP Loc_unknown)
-  let _j cond = emit (J (Loc_unknown, cond))
-  let _set cond = emit (SET cond)
+  let _call arg = emit (CALL arg)
+  let _set cond arg = emit (SET (cond, arg))
 
   let _je = _j E
   let _jae = _j AE
@@ -524,142 +586,143 @@ module MakeEmitter(M : sig
   let _jp = _j P
 
   (* Qword mnemonics *)
-  let _addq = emit (ADD Q)
-  let _subq = emit (SUB Q)
-  let _andq = emit (AND Q)
-  let _orq = emit (OR Q)
-  let _salq = emit (SAL Q)
-  let _sarq = emit (SAR Q)
-  let _shrq = emit (SHR Q)
-  let _imulq = emit (IMUL Q)
-  let _xorq = emit (XOR Q)
-  let _cmpq = emit (CMP Q)
-  let _popq = emit (POP Q)
-  let _pushq = emit (PUSH Q)
-  let _testq = emit (TEST Q)
-  let _movq = emit (MOV Q)
-  let _leaq = emit (LEA Q)
-  let _movzbq = emit (MOVZX (B,Q))
-  let _movsbq = emit (MOVSX (B,Q))
-  let _movzwq = emit (MOVZX (W,Q))
-  let _movswq = emit (MOVSX (W,Q))
-  let _idivq = emit (IDIV Q)
+  let _addq (arg1, arg2) = emit (ADD (Q, arg1, arg2))
+  let _subq (arg1, arg2) = emit (SUB (Q, arg1, arg2))
+  let _andq (arg1, arg2) = emit (AND (Q, arg1, arg2))
+  let _orq (arg1, arg2) = emit (OR (Q, arg1, arg2))
+  let _salq (arg1, arg2) = emit (SAL (Q, arg1, arg2))
+  let _sarq (arg1, arg2) = emit (SAR (Q, arg1, arg2))
+  let _shrq (arg1, arg2) = emit (SHR (Q, arg1, arg2))
+  let _imulq (arg1, arg2) = emit (IMUL (Q, arg1, arg2))
+  let _xorq (arg1, arg2) = emit (XOR (Q, arg1, arg2))
+  let _cmpq (arg1, arg2) = emit (CMP (Q, arg1, arg2))
+  let _popq arg = emit (POP (Q, arg))
+  let _pushq arg = emit (PUSH (Q, arg))
+  let _testq (arg1, arg2) = emit (TEST (Q, arg1, arg2))
+  let _movq (arg1, arg2) = emit (MOV (Q, arg1, arg2))
+  let _leaq (arg1, arg2) = emit (LEA (Q, arg1, arg2))
+  let _movzbq (arg1, arg2)  = emit (MOVZX (B,Q, arg1, arg2))
+  let _movsbq (arg1, arg2)  = emit (MOVSX (B,Q, arg1, arg2))
+  let _movzwq (arg1, arg2)  = emit (MOVZX (W,Q, arg1, arg2))
+  let _movswq (arg1, arg2)  = emit (MOVSX (W,Q, arg1, arg2))
+  let _idivq arg = emit (IDIV (Q, arg))
 
   (* Long-word mnemonics *)
-  let _addl = emit (ADD L)
-  let _subl = emit (SUB L)
-  let _andl = emit (AND L)
-  let _orl = emit (OR L)
-  let _sall = emit (SAL L)
-  let _sarl = emit (SAR L)
-  let _shrl = emit (SHR L)
-  let _imull = emit (IMUL L)
-  let _idivl = emit (IDIV L)
-  let _xorl = emit (XOR L)
-  let _cmpl = emit (CMP L)
-  let _popl = emit (POP L)
-  let _pushl = emit (PUSH L)
-  let _testl = emit (TEST L)
-  let _decl = emit (DEC L)
-  let _movw = emit (MOV W)
-  let _movl = emit (MOV L)
-  let _incl = emit (INC L)
-  let _leal = emit (LEA L)
-  let _fistpl = emit (FISTP L)
-  let _movzbl = emit (MOVZX (B,L))
-  let _movsbl = emit (MOVSX (B,L))
-  let _movzwl = emit (MOVZX (W,L))
-  let _movswl = emit (MOVSX (W,L))
-  let _fildl = emit (FILD L)
-  let _fstpl = emit  (FSTP (Some L))
+  let _addl (arg1, arg2) = emit (ADD (L, arg1, arg2))
+  let _subl (arg1, arg2) = emit (SUB  (L, arg1, arg2))
+  let _andl (arg1, arg2) = emit (AND  (L, arg1, arg2))
+  let _orl (arg1, arg2) = emit (OR  (L, arg1, arg2))
+  let _sall (arg1, arg2) = emit (SAL  (L, arg1, arg2))
+  let _sarl (arg1, arg2) = emit (SAR  (L, arg1, arg2))
+  let _shrl (arg1, arg2) = emit (SHR  (L, arg1, arg2))
+  let _xorl (arg1, arg2) = emit (XOR (L, arg1, arg2))
+  let _cmpl (arg1, arg2) = emit (CMP  (L, arg1, arg2))
+  let _testl (arg1, arg2) = emit (TEST (L, arg1, arg2))
+  let _movl (arg1, arg2) = emit (MOV (L, arg1, arg2))
+  let _imull (arg1, arg2) = emit (IMUL (L, arg1, arg2))
+  let _idivl arg = emit (IDIV (L, arg))
+  let _popl arg = emit (POP (L, arg))
+  let _pushl arg = emit (PUSH (L, arg))
+  let _decl arg = emit (DEC (L, arg))
+  let _incl arg = emit (INC (L, arg))
+  let _leal (arg1, arg2) = emit (LEA (L, arg1, arg2))
+  let _fistpl arg = emit (FISTP (L, arg))
+  let _movzbl (arg1, arg2) = emit (MOVZX (B,L, arg1, arg2))
+  let _movsbl (arg1, arg2) = emit (MOVSX (B,L, arg1, arg2))
+  let _movzwl (arg1, arg2) = emit (MOVZX (W,L, arg1, arg2))
+  let _movswl (arg1, arg2) = emit (MOVSX (W,L, arg1, arg2))
+  let _fildl arg = emit (FILD (L, arg))
+  let _fstpl arg = emit  (FSTP (Some L, arg))
 
 (* Word mnemonics *)
-  let _movw = emit (MOV W)
+  let _movw (arg1, arg2) = emit (MOV (W, arg1, arg2))
 
   (* Byte mnemonics *)
-  let _decb = emit (DEC B)
-  let _cmpb = emit (CMP B)
-  let _movb = emit (MOV B)
-  let _andb = emit (AND B)
-  let _xorb = emit (XOR B)
-  let _movb = emit (MOV B)
-  let _testb = emit (TEST B)
+  let _decb arg = emit (DEC (B, arg))
+  let _cmpb (arg1, arg2) = emit (CMP (B, arg1, arg2))
+  let _movb (arg1, arg2) = emit (MOV (B, arg1, arg2))
+  let _andb (arg1, arg2) = emit (AND (B, arg1, arg2))
+  let _xorb (arg1, arg2) = emit (XOR (B, arg1, arg2))
+  let _movb (arg1, arg2) = emit (MOV (B, arg1, arg2))
+  let _testb (arg1, arg2) = emit (TEST (B, arg1, arg2))
 
 
-  let _movsd = emit MOVSD
-  let _ucomisd = emit UCOMISD
-  let _comisd = emit COMISD
-  let _movapd = emit MOVAPD
-  let _xorpd = emit XORPD
-  let _movabsq = emit MOVABSQ
+  let _movsd (arg1, arg2) = emit (MOVSD (arg1, arg2))
+  let _ucomisd (arg1, arg2) = emit (UCOMISD (arg1, arg2))
+  let _comisd (arg1, arg2) = emit (COMISD (arg1, arg2))
+  let _movapd (arg1, arg2) = emit (MOVAPD  (arg1, arg2))
+  let _movabsq (arg1, arg2) = emit (MOVABSQ  (arg1, arg2))
+  let _xorpd (arg1, arg2) = emit (XORPD  (arg1, arg2))
+  let _andpd (arg1, arg2) = emit (ANDPD  (arg1, arg2))
 
-  let _movslq = emit MOVSXD
-  let _cvtss2sd = emit CVTSS2SD
-  let _movss = emit MOVSS
-  let _cvtsd2ss = emit CVTSD2SS
-  let _cqto = emit CQTO
-  let _addsd = emit ADDSD
-  let _subsd = emit SUBSD
-  let _mulsd = emit MULSD
-  let _divsd = emit DIVSD
-  let _incq = emit (INC Q)
-  let _decq = emit (DEC Q)
-  let _andpd = emit ANDPD
-  let _cvtsi2sd = emit CVTSI2SD
-  let _cvttsd2si = emit CVTTSD2SI
-  let _xchg = emit XCHG
-  let _bswap = emit BSWAP
-  let _sqrtsd = emit SQRTSD
-  let _ret = emit RET
-  let _cltd = emit CLTD
-  let _hlt = emit HLT
+  let _movslq (arg1, arg2) = emit (MOVSXD  (arg1, arg2))
+  let _movss (arg1, arg2) = emit (MOVSS (arg1, arg2))
+  let _cvtss2sd (arg1, arg2) = emit (CVTSS2SD (arg1, arg2))
+  let _cvtsd2ss (arg1, arg2) = emit (CVTSD2SS (arg1, arg2))
+  let _cvtsi2sd (arg1, arg2) = emit (CVTSI2SD (arg1, arg2))
+  let _cvttsd2si (arg1, arg2) = emit (CVTTSD2SI (arg1, arg2))
+  let _addsd (arg1, arg2) = emit (ADDSD (arg1, arg2))
+  let _subsd  (arg1, arg2) = emit (SUBSD (arg1, arg2))
+  let _mulsd (arg1, arg2) = emit (MULSD (arg1, arg2))
+  let _divsd (arg1, arg2) = emit (DIVSD (arg1, arg2))
+  let _sqrtsd (arg1, arg2) = emit (SQRTSD (arg1, arg2))
 
-  let _nop = emit NOP
-  let _fchs = emit FCHS
-  let _fabs = emit FABS
+let _cqto () = emit CQTO
 
-  let _faddl = emit  FADDL
-  let _fsubl = emit  FSUBL
-  let _fmull = emit  FMULL
-  let _fdivl = emit  FDIVL
-  let _fsubrl = emit  FSUBRL
-  let _fdivrl = emit  FDIVRL
+  let _incq arg = emit (INC (Q, arg))
+  let _decq arg = emit (DEC (Q, arg))
+  let _xchg (arg1, arg2) = emit (XCHG (arg1, arg2))
+  let _bswap arg = emit (BSWAP arg)
+  let _ret () = emit RET
+  let _cltd () = emit CLTD
+  let _hlt () = emit HLT
 
-  let _faddp = emit  FADDP
-  let _fsubp = emit  FSUBP
-  let _fmulp = emit  FMULP
-  let _fdivp = emit  FDIVP
-  let _fsubrp = emit  FSUBRP
-  let _fdivrp = emit  FDIVRP
+  let _nop () = emit NOP
+  let _fchs arg_o = emit (FCHS arg_o)
+  let _fabs arg_o = emit (FABS arg_o)
 
-  let _fadds = emit  FADDS
-  let _fsubs = emit  FSUBS
-  let _fmuls = emit  FMULS
-  let _fdivs = emit  FDIVS
-  let _fsubrs = emit  FSUBRS
-  let _fdivrs = emit  FDIVRS
+  let _faddl arg = emit  (FADDL arg)
+  let _fsubl arg = emit  (FSUBL arg)
+  let _fmull arg = emit  (FMULL arg)
+  let _fdivl arg = emit  (FDIVL arg)
+  let _fsubrl arg = emit  (FSUBRL arg)
+  let _fdivrl arg = emit  (FDIVRL arg)
 
-  let _fcompp = emit FCOMPP
-  let _fcompl = emit FCOMPL
-  let _fldl = emit FLDL
-  let _flds = emit FLDS
-  let _fnstsw = emit FNSTSW
+  let _faddp (arg1, arg2) = emit  (FADDP (arg1, arg2))
+  let _fsubp (arg1, arg2) = emit  (FSUBP (arg1, arg2))
+  let _fmulp (arg1, arg2) = emit  (FMULP (arg1, arg2))
+  let _fdivp (arg1, arg2) = emit  (FDIVP (arg1, arg2))
+  let _fsubrp (arg1, arg2) = emit  (FSUBRP (arg1, arg2))
+  let _fdivrp (arg1, arg2) = emit  (FDIVRP (arg1, arg2))
 
-  let _fld1 = emit FLD1
-  let _fpatan = emit  FPATAN
-  let _fptan = emit  FPTAN
-  let _fcos = emit  FCOS
-  let _fldln2 = emit  FLDLN2
-  let _fldlg2 = emit  FLDLG2
-  let _fxch = emit  FXCH
-  let _fyl2x = emit  FYL2X
-  let _fsin = emit  FSIN
-  let _fsqrt = emit  FSQRT
-  let _fstp = emit  (FSTP None)
-  let _fstps = emit  FSTPS
-  let _fldz = emit FLDZ
-  let _fnstcw = emit FNSTCW
-  let _fldcw = emit FLDCW
+  let _fadds arg = emit  (FADDS arg)
+  let _fsubs arg = emit  (FSUBS arg)
+  let _fmuls arg  = emit  (FMULS arg)
+  let _fdivs arg = emit  (FDIVS arg)
+  let _fsubrs arg = emit  (FSUBRS arg)
+  let _fdivrs arg = emit  (FDIVRS arg)
+
+  let _fcompp () = emit FCOMPP
+  let _fcompl arg = emit (FCOMPL arg)
+  let _fldl arg = emit (FLDL arg)
+  let _flds arg = emit (FLDS arg)
+  let _fnstsw arg = emit (FNSTSW arg)
+
+  let _fld1 () = emit FLD1
+  let _fpatan () = emit  FPATAN
+  let _fptan () = emit  FPTAN
+  let _fcos () = emit  FCOS
+  let _fldln2 () = emit  FLDLN2
+  let _fldlg2 () = emit  FLDLG2
+  let _fxch arg = emit  (FXCH arg)
+  let _fyl2x () = emit  FYL2X
+  let _fsin () = emit  FSIN
+  let _fsqrt () = emit  FSQRT
+  let _fstp arg = emit  (FSTP (None, arg))
+  let _fstps arg = emit  (FSTPS arg)
+  let _fldz () = emit FLDZ
+  let _fnstcw arg = emit (FNSTCW arg)
+  let _fldcw arg = emit (FLDCW arg)
 
 
  (* arguments *)
@@ -672,14 +735,22 @@ module MakeEmitter(M : sig
     if system = S_win64 then LabelRel(pref, s, 0)
     else Mem (pref, RIP, 1, BaseSymbol s, 0)
 
-  let _mem offset reg = Mem(NO, reg, 1, NoBase, offset)
-
-(* On win32/win64, some memory references need to specify the size of
-   the operand in 'pref' *)
-  let _mem_ptr pref offset reg = Mem(pref, reg, 1, NoBase, offset)
 
   let _int n = emit_int n
   let _st n = Regf (ST n)
   let _offset l = LabelOffset l
 
-end
+let generate_code oc bprint_instr =
+  let instrs = List.rev seg.seg_instrs in
+  let instrs = List.fold_left (fun instrs pass ->
+      pass instrs
+    ) instrs !assembler_passes in
+
+  if ! print_assembler then
+    let b = Buffer.create 10000 in
+    List.iter (bprint_instr b !arch64) instrs;
+    let s = Buffer.contents b in
+    output_string oc s
+
+
+

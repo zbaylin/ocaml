@@ -12,9 +12,70 @@
 
 open Intel_proc
 
+let bprint_arg_mem b arch mem = match mem with
+
+  |  (_, reg1, 1, BaseSymbol s, 0) ->
+    Printf.bprintf b "%s(%%%s)" s (string_of_register arch reg1)
+
+  |  (_, reg1, 1, BaseSymbol s, offset) ->
+    if offset < 0 then
+      Printf.bprintf b "%s%d(%%%s)" s offset (string_of_register arch reg1)
+    else
+      Printf.bprintf b "%s+%d(%%%s)" s offset (string_of_register arch reg1)
+
+  |  (_, reg1, scale, BaseSymbol s, offset) ->
+    if offset = 0 then
+      Printf.bprintf b "%s(,%%%s,%d)" s
+        (string_of_register arch reg1) scale
+    else    if offset < 0 then
+      Printf.bprintf b "%s%d(,%%%s,%d)" s
+        offset (string_of_register arch reg1) scale
+    else
+      Printf.bprintf b "%s+%d(,%%%s,%d)" s
+        offset (string_of_register arch reg1) scale
+
+  |  (_, reg1, 1, NoBase, 0) ->
+    Buffer.add_char b '(';
+    Printf.bprintf b "%%%s" (string_of_register arch reg1);
+    Buffer.add_char b ')'
+
+  |  (_, reg1, 1, NoBase, offset) ->
+    if offset <> 0 then begin
+      if offset < 0 then
+        Printf.bprintf b "-%d" (-offset)
+      else
+        Printf.bprintf b "%d" offset
+    end;
+    Buffer.add_char b '(';
+    Printf.bprintf b "%%%s" (string_of_register arch reg1);
+    Buffer.add_char b ')'
+
+  |  (_, reg1, scale, reg2, offset) ->
+    if offset <> 0 then begin
+      if offset < 0 then
+        Printf.bprintf b "-%d" (-offset)
+      else
+	Printf.bprintf b "%d" offset
+    end;
+    Buffer.add_char b '(';
+    begin
+      match reg2 with
+	NoBase -> ()
+      | BaseReg reg2 ->
+        Printf.bprintf b "%%%s" (string_of_register arch reg2)
+      | BaseSymbol s ->
+        Printf.bprintf b "%s" s
+    end;
+    Buffer.add_char b ',';
+    Printf.bprintf b "%%%s" (string_of_register arch reg1);
+    if scale <> 1 then
+      Printf.bprintf b ",%d" scale;
+    Buffer.add_char b ')'
+
+
 let bprint_arg arch b ins arg =
   match arg with
-  | Constant int ->
+  | ConstantInt int ->
     Printf.bprintf b "$%d" int
   | ConstantNat int ->
     Printf.bprintf b "$%nd" int
@@ -45,75 +106,20 @@ let bprint_arg arch b ins arg =
   | Reg32 register32 ->
     Printf.bprintf b "%%%s" (string_of_register32 register32)
   | Reg register ->
-    Printf.bprintf b "%%%s" (arch.string_of_register register)
+    Printf.bprintf b "%%%s" (string_of_register arch register)
   | Regf registerf ->
     Printf.bprintf b "%%%s" (string_of_registerf registerf)
 
-  | Mem (_, reg1, 1, BaseSymbol s, 0) ->
-    Printf.bprintf b "%s(%%%s)" s (arch.string_of_register reg1)
+  | Mem ( ptr, r, scale, base, offset) ->
+    bprint_arg_mem b arch (ptr, r, scale, base, offset)
 
-  | Mem (_, reg1, 1, BaseSymbol s, offset) ->
-    if offset < 0 then
-      Printf.bprintf b "%s%d(%%%s)" s offset (arch.string_of_register reg1)
-    else
-      Printf.bprintf b "%s+%d(%%%s)" s offset (arch.string_of_register reg1)
-
-  | Mem (_, reg1, scale, BaseSymbol s, offset) ->
-    if offset = 0 then
-      Printf.bprintf b "%s(,%%%s,%d)" s
-        (arch.string_of_register reg1) scale
-    else    if offset < 0 then
-      Printf.bprintf b "%s%d(,%%%s,%d)" s
-        offset (arch.string_of_register reg1) scale
-    else
-      Printf.bprintf b "%s+%d(,%%%s,%d)" s
-        offset (arch.string_of_register reg1) scale
-
-  | Mem (_, reg1, 1, NoBase, 0) ->
-    Buffer.add_char b '(';
-    Printf.bprintf b "%%%s" (arch.string_of_register reg1);
-    Buffer.add_char b ')'
-
-  | Mem (_, reg1, 1, NoBase, offset) ->
-    if offset <> 0 then begin
-      if offset < 0 then
-        Printf.bprintf b "-%d" (-offset)
-      else
-        Printf.bprintf b "%d" offset
-    end;
-    Buffer.add_char b '(';
-    Printf.bprintf b "%%%s" (arch.string_of_register reg1);
-    Buffer.add_char b ')'
-
-  | Mem (_, reg1, scale, reg2, offset) ->
-    if offset <> 0 then begin
-      if offset < 0 then
-        Printf.bprintf b "-%d" (-offset)
-      else
-	Printf.bprintf b "%d" offset
-    end;
-    Buffer.add_char b '(';
-    begin
-      match reg2 with
-	NoBase -> ()
-      | BaseReg reg2 ->
-        Printf.bprintf b "%%%s" (arch.string_of_register reg2)
-      | BaseSymbol s ->
-        Printf.bprintf b "%s" s
-    end;
-    Buffer.add_char b ',';
-    Printf.bprintf b "%%%s" (arch.string_of_register reg1);
-    if scale <> 1 then
-      Printf.bprintf b ",%d" scale;
-    Buffer.add_char b ')'
-
-let bprint_args arch b instr =
-  match instr with
-    { args = [||] } -> ()
-  | { args = [|Reg _ | Mem _ as arg|]; instr = (CALL | JMP _) } ->
+let bprint_args arch b instr args =
+  match args, instr with
+    [], _ -> ()
+  | [ Reg _  | Mem _ as arg ],  (CALL _ | JMP _) ->
     tab b; Buffer.add_char b '*'; bprint_arg arch b instr arg
-  | { args = [|arg|] } -> tab b; bprint_arg arch b instr arg
-  | { args = [|arg1; arg2|] } ->
+  | [ arg ], _ -> tab b; bprint_arg arch b instr arg
+  | [ arg1; arg2 ], _ ->
     tab b; bprint_arg arch b instr arg1;
     Buffer.add_char b ',';
     Buffer.add_char b ' ';
@@ -149,9 +155,6 @@ and string_of_simple_constant = function
     Printf.sprintf "(%s - %s)"
       (string_of_simple_constant c1) (string_of_simple_constant c2)
 
-let suff arch ins =
-  if arch.arch64 then ins ^ "q" else ins ^ "l"
-
 let get_suffix s =
   match s with
    | B -> "b"
@@ -166,12 +169,14 @@ let suffix2 ins s1 s2 =
   ins ^ (get_suffix s1) ^ (get_suffix s2)
 
 
+let list_o arg = match arg with None -> [] | Some arg -> [arg]
+
 let bprint_instr b arch instr =
   begin
-    match instr.instr with
+    match instr with
       Global s ->
       Printf.bprintf b "\t.globl\t%s" s;
-    | Align (data,n) ->
+    | Align (_data,n) ->
       Printf.bprintf b "\t.align\t%d" n
     | NewLabel (s, _) ->
       Printf.bprintf b "%s:" s
@@ -181,168 +186,168 @@ let bprint_instr b arch instr =
       Printf.bprintf b "\t%s" s
     | End -> ()
     | _ ->
-      let ins =
-        match instr.instr with
+      let ins, args =
+        match instr with
 	  Global _ | Align _ | NewLabel _
         | Comment _ | Specific _
 	| End
         | External _ -> assert false
 
-        | Segment Text -> ".text"
-        | Segment Data -> ".data"
-        | Set -> ".set"
+        | Segment Text -> ".text", []
+        | Segment Data -> ".data", []
+        | Set (arg1, arg2) -> ".set", [ arg1; arg2 ]
         | Space n ->
           if system = S_solaris then
-            Printf.sprintf ".zero\t%d" n
+            Printf.sprintf ".zero\t%d" n, []
           else
-            Printf.sprintf ".space\t%d" n
+            Printf.sprintf ".space\t%d" n, []
         | Constant (n, BYTE) ->
-          Printf.sprintf ".byte\t%s" (string_of_constant n)
+          Printf.sprintf ".byte\t%s" (string_of_constant n), []
         | Constant (n, WORD) ->
           if system = S_solaris then
-            Printf.sprintf ".value\t%s" (string_of_constant n)
+            Printf.sprintf ".value\t%s" (string_of_constant n), []
           else
-            Printf.sprintf ".word\t%s" (string_of_constant n)
+            Printf.sprintf ".word\t%s" (string_of_constant n), []
         | Constant (n, DWORD) ->
-          Printf.sprintf ".long\t%s" (string_of_constant n)
+          Printf.sprintf ".long\t%s" (string_of_constant n), []
         | Constant (n, QWORD) ->
-	  Printf.sprintf ".quad\t%s" (string_of_constant n)
+	  Printf.sprintf ".quad\t%s" (string_of_constant n), []
         | Constant _ -> assert false
 	| Bytes s ->
           if system = S_solaris then
             assert false (* TODO *)
           else
 	    Printf.sprintf ".ascii\t\"%s\""
-              (string_of_string_literal s)
+              (string_of_string_literal s), []
 
-        | NOP -> "nop"
-	| NEG ->  "neg"
-	| ADD s ->  suffix "add" s
-	| SUB s -> suffix "sub" s
-	| XOR s ->  suffix "xor" s
-	| OR s -> suffix "or" s
-	| AND s -> suffix "and" s
-	| CMP s -> suffix "cmp" s
+        | NOP -> "nop", []
+	| NEG arg ->  "neg", [ arg ]
+	| ADD (s, arg1, arg2) ->  suffix "add" s, [arg1; arg2]
+	| SUB (s, arg1, arg2) -> suffix "sub" s, [arg1; arg2]
+	| XOR (s, arg1, arg2) ->  suffix "xor" s, [arg1; arg2]
+	| OR (s, arg1, arg2) -> suffix "or" s, [arg1; arg2]
+	| AND (s, arg1, arg2) -> suffix "and" s, [arg1; arg2]
+	| CMP (s, arg1, arg2) -> suffix "cmp" s, [arg1; arg2]
 
-	| LEAVE -> "leave"
-	| SAR s -> suffix "sar" s
-	| SHR s -> suffix "shr" s
-	| SAL s -> suffix "sal" s
+	| LEAVE -> "leave", []
+	| SAR (s, arg1, arg2) -> suffix "sar" s, [arg1; arg2]
+	| SHR (s, arg1, arg2) -> suffix "shr" s, [arg1; arg2]
+	| SAL (s, arg1, arg2) -> suffix "sal" s, [arg1; arg2]
 
-        | MOVABSQ -> "movabsq"
-        | FISTP s -> suffix "fistp" s
+        | MOVABSQ (arg1, arg2) -> "movabsq", [arg1; arg2]
+        | FISTP (s, arg) -> suffix "fistp" s, [ arg ]
 
-	| FSTP None -> "fstp"
-	| FSTP (Some s) -> suffix "fstp" s
-	| FSTPS -> "fstps"
-        | FILD s -> suffix "fild" s
-        | HLT -> "hlt"
+	| FSTP (None, arg) -> "fstp", [arg]
+	| FSTP (Some s, arg) -> suffix "fstp" s, [arg]
+	| FSTPS arg -> "fstps", [ arg ]
+        | FILD (s, arg) -> suffix "fild" s, [ arg ]
+        | HLT -> "hlt", []
 
-        | FCOMPP -> "fcompp"
-        | FCOMPL -> "fcompl"
-        | FLDL -> "fldl"
-        | FLDS -> "flds"
-        | FNSTSW -> "fnstsw"
-        | FNSTCW -> "fnstcw"
-        | FLDCW -> "fldcw"
+        | FCOMPP -> "fcompp", []
+        | FCOMPL arg -> "fcompl", [ arg ]
+        | FLDL arg -> "fldl", [ arg ]
+        | FLDS arg -> "flds", [ arg ]
+        | FNSTSW arg -> "fnstsw", [ arg ]
+        | FNSTCW arg -> "fnstcw", [ arg ]
+        | FLDCW arg -> "fldcw", [ arg ]
 
-        | FCHS -> "fchs"
-        | FABS -> "fabs"
+        | FCHS arg -> "fchs", list_o arg
+        | FABS  arg -> "fabs", list_o arg
 
-        | FADDL -> "faddl"
-        | FSUBL -> "fsubl"
-        | FMULL -> "fmull"
-        | FDIVL -> "fdivl"
-        | FSUBRL -> "fsubrl"
-        | FDIVRL -> "fdivrl"
+        | FADDL arg -> "faddl", list_o arg
+        | FSUBL arg -> "fsubl", list_o arg
+        | FMULL arg -> "fmull", list_o arg
+        | FDIVL  arg-> "fdivl", list_o arg
+        | FSUBRL arg -> "fsubrl", list_o arg
+        | FDIVRL arg -> "fdivrl", list_o arg
 
-        | FLD1 -> "fld1"
-        | FPATAN -> "fpatan"
-        | FPTAN -> "fptan"
-        | FCOS -> "fcos"
-        | FLDLN2 -> "fldln2"
-        | FLDLG2 -> "fldlg2"
-        | FXCH -> "fxch"
-        | FYL2X -> "fyl2x"
-        | FSIN -> "fsin"
-        | FSQRT -> "fsqrt"
-        | FLDZ -> "fldz"
+        | FLD1 -> "fld1", []
+        | FPATAN -> "fpatan", []
+        | FPTAN -> "fptan", []
+        | FCOS -> "fcos", []
+        | FLDLN2 -> "fldln2", []
+        | FLDLG2 -> "fldlg2", []
+        | FXCH arg -> "fxch", list_o arg
+        | FYL2X -> "fyl2x", []
+        | FSIN -> "fsin", []
+        | FSQRT -> "fsqrt", []
+        | FLDZ -> "fldz", []
 
-        | FADDP -> "faddp"
-        | FSUBP -> "fsubp"
-        | FMULP -> "fmulp"
-        | FDIVP -> "fdivp"
-        | FSUBRP -> "fsubrp"
-        | FDIVRP -> "fdivrp"
+        | FADDP (arg1, arg2)  -> "faddp", [ arg1; arg2 ]
+        | FSUBP (arg1, arg2)  -> "fsubp", [ arg1; arg2 ]
+        | FMULP (arg1, arg2)  -> "fmulp", [ arg1; arg2 ]
+        | FDIVP (arg1, arg2)  -> "fdivp", [ arg1; arg2 ]
+        | FSUBRP (arg1, arg2)  -> "fsubrp", [ arg1; arg2 ]
+        | FDIVRP (arg1, arg2)  -> "fdivrp", [ arg1; arg2 ]
 
-        | FADDS -> "fadds"
-        | FSUBS -> "fsubs"
-        | FMULS -> "fmuls"
-        | FDIVS -> "fdivs"
-        | FSUBRS -> "fsubrs"
-        | FDIVRS -> "fdivrs"
+        | FADDS arg -> "fadds", list_o arg
+        | FSUBS arg -> "fsubs", list_o arg
+        | FMULS arg -> "fmuls", list_o arg
+        | FDIVS arg -> "fdivs", list_o arg
+        | FSUBRS arg -> "fsubrs", list_o arg
+        | FDIVRS arg -> "fdivrs", list_o arg
 
-	| INC s ->  suffix "inc" s
-	| DEC s ->  suffix "dec" s
+	| INC (s, arg) ->  suffix "inc" s, [ arg ]
+	| DEC (s, arg) ->  suffix "dec" s, [ arg ]
 
-	| IMUL s ->  suffix "imul" s
-	| IDIV s ->  suffix "idiv" s
+	| IMUL (s, arg1, arg2) ->  suffix "imul" s, arg1 :: list_o arg2
+	| IDIV (s, arg) ->  suffix "idiv" s, [ arg ]
 
-	| MOV s ->  suffix "mov" s
-	| MOVZX (s1, s2) -> suffix2 "movz" s1 s2
-	| MOVSX (s1, s2) -> suffix2 "movs" s1 s2
-	| MOVSS ->  "movss"
-	| MOVSXD ->  "movslq"
+	| MOV (s, arg1, arg2) ->  suffix "mov" s, [arg1; arg2]
+	| MOVZX (s1, s2, arg1, arg2) -> suffix2 "movz" s1 s2, [arg1; arg2]
+	| MOVSX (s1, s2, arg1, arg2) -> suffix2 "movs" s1 s2, [arg1; arg2]
+	| MOVSS (arg1, arg2) ->  "movss", [arg1; arg2]
+	| MOVSXD (arg1, arg2) ->  "movslq", [arg1; arg2]
 
-	| MOVSD ->  "movsd"
-	| ADDSD ->  "addsd"
-	| SUBSD ->  "subsd"
-	| MULSD ->  "mulsd"
-	| DIVSD ->  "divsd"
-	| SQRTSD -> "sqrtsd"
+	| MOVSD (arg1, arg2) ->  "movsd", [ arg1 ; arg2 ]
+	| ADDSD (arg1, arg2) ->  "addsd", [ arg1 ; arg2 ]
+	| SUBSD (arg1, arg2) ->  "subsd", [ arg1 ; arg2 ]
+	| MULSD (arg1, arg2) ->  "mulsd", [ arg1 ; arg2 ]
+	| DIVSD (arg1, arg2) ->  "divsd", [ arg1 ; arg2 ]
+	| SQRTSD (arg1, arg2) -> "sqrtsd", [ arg1; arg2 ]
 	| ROUNDSD rounding ->
 	  Printf.sprintf "roundsd.%s" (match rounding with
 	      RoundDown -> "down"
 	    | RoundUp -> "up"
 	    | RoundTruncate -> "trunc"
-	    | RoundNearest -> "near")
-	| CVTSS2SD ->  "cvtss2sd"
-	| CVTSD2SS ->  "cvtsd2ss"
-	| CVTSI2SD ->  "cvtsi2sd"
-	| CVTSI2SDQ ->  "cvtsi2sdq"
-	| CVTSD2SI ->  "cvtsd2si"
-	| CVTTSD2SI ->  "cvttsd2si"
-	| UCOMISD ->  "ucomisd"
-	| COMISD ->  "comisd"
+	    | RoundNearest -> "near"), []
+	| CVTSS2SD (arg1, arg2) ->  "cvtss2sd", [ arg1; arg2 ]
+	| CVTSD2SS (arg1, arg2) ->  "cvtsd2ss", [ arg1; arg2 ]
+	| CVTSI2SD (arg1, arg2) ->  "cvtsi2sd", [ arg1; arg2 ]
+	| CVTSI2SDQ (arg1, arg2) ->  "cvtsi2sdq", [ arg1; arg2 ]
+	| CVTSD2SI (arg1, arg2) ->  "cvtsd2si", [ arg1; arg2 ]
+	| CVTTSD2SI (arg1, arg2) ->  "cvttsd2si", [ arg1; arg2 ]
+	| UCOMISD (arg1, arg2) ->  "ucomisd", [ arg1; arg2 ]
+	| COMISD (arg1, arg2) ->  "comisd", [ arg1; arg2 ]
 
-	| CALL  ->  "call"
-	| JMP _ ->  "jmp"
-	| RET ->  "ret"
-	| PUSH s -> suffix "push" s
-	| POP s -> suffix "pop" s
+	| CALL arg  ->  "call", [ arg ]
+	| JMP (_, arg) ->  "jmp", [ arg ]
+	| RET ->  "ret", []
+	| PUSH (s, arg) -> suffix "push" s, [ arg ]
+	| POP (s, arg) -> suffix "pop" s, [ arg ]
 
-	| TEST s ->  suffix "test" s
-	| SET condition ->
-	  Printf.sprintf  "set%s" (string_of_condition condition)
-	| J (_,condition) ->
-	  Printf.sprintf  "j%s" (string_of_condition condition)
+	| TEST (s, arg1, arg2) ->  suffix "test" s, [ arg1; arg2]
+	| SET (condition, arg) ->
+	  Printf.sprintf  "set%s" (string_of_condition condition), [ arg ]
+	| J (_,condition, arg) ->
+	  Printf.sprintf  "j%s" (string_of_condition condition), [arg]
+
 
 	| CMOV condition ->
-	  Printf.sprintf "cmov%s" (string_of_condition condition)
-	| XORPD ->  "xorpd"
-	| ANDPD ->  "andpd"
-	| MOVLPD ->  "movlpd"
-	| MOVAPD ->  "movapd"
+	  Printf.sprintf "cmov%s" (string_of_condition condition), []
+	| XORPD (arg1, arg2) ->  "xorpd", [ arg1; arg2 ]
+	| ANDPD (arg1, arg2) ->  "andpd", [ arg1; arg2 ]
+	| MOVLPD (arg1, arg2) ->  "movlpd", [arg1; arg2]
+	| MOVAPD (arg1, arg2) ->  "movapd", [arg1; arg2]
+	| LEA (s, arg1, arg2) ->  suffix "lea" s, [ arg1; arg2 ]
+	| CQTO ->  "cqto", []
+        | CLTD -> "cltd", []
 
-	| LEA s ->  suffix "lea" s
-	| CQTO ->  "cqto"
-        | CLTD -> "cltd"
-
-        | XCHG -> "xchg"
-        | BSWAP -> "bswap"
+        | XCHG (arg1, arg2) -> "xchg", [ arg1; arg2 ]
+        | BSWAP arg -> "bswap", [ arg ]
       in
-      bprint b ins
+      bprint b ins;
+      bprint_args arch b instr args;
   end;
-  bprint_args arch b instr;
   Buffer.add_string b "\n"
 

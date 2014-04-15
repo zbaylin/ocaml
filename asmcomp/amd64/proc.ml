@@ -302,13 +302,7 @@ let contains_calls = ref false
 (* Calling the assembler *)
 
 let assemble_file infile outfile =
-  if masm then
-    Ccomp.command (Config.asm ^
-                   Filename.quote outfile ^ " " ^ Filename.quote infile ^
-                   (if !Clflags.verbose then "" else ">NUL"))
-  else
-    Ccomp.command (Config.asm ^ " -o " ^
-                   Filename.quote outfile ^ " " ^ Filename.quote infile)
+  Intel_proc.assemble_file infile outfile
 
 let init () =
   if fp then begin
