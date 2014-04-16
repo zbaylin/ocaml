@@ -220,7 +220,7 @@ module LongString = struct
 
   let create str_size =
     let tbl_size = str_size / Sys.max_string_length + 1 in
-    let tbl = Array.make tbl_size (Bytearray.create 0) in
+    let tbl = Array.make tbl_size Bytearray.empty in
     for i = 0 to tbl_size - 2 do
       tbl.(i) <- Bytearray.create Sys.max_string_length;
     done;

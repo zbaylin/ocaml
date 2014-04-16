@@ -530,7 +530,7 @@ let include_err ppf (cxt, env, err) =
   Printtyp.wrap_printing_env env (fun () ->
     fprintf ppf "@[<v>%a%a@]" context (List.rev cxt) include_err err)
 
-let buffer = ref (Bytearray.create 0)
+let buffer = ref Bytearray.empty
 let is_big obj =
   let size = !Clflags.error_size in
   size > 0 &&
