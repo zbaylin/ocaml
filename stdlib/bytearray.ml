@@ -26,12 +26,12 @@ external unsafe_fill : bytearray -> int -> int -> char -> unit
 external unsafe_to_string : bytearray -> string = "%identity"
 external unsafe_of_string : string -> bytearray = "%identity"
 
-let empty = create 0;;
-
 let make n c =
   let s = create n in
   unsafe_fill s 0 n c;
   s
+
+let empty = create 0;;
 
 let copy s =
   let len = length s in

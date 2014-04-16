@@ -59,6 +59,9 @@ val make : int -> char -> bytearray
 
    Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.*)
 
+val empty : bytearray
+(** A bytearray of size 0. *)
+
 val copy : bytearray -> bytearray
 (** Return a copy of the given bytearray. *)
 
