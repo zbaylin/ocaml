@@ -257,7 +257,7 @@ val openfile : string -> mode:open_flag list -> perm:file_perm -> file_descr
 val close : file_descr -> unit
 (** Close a file descriptor. *)
 
-val read : file_descr -> buf:string -> pos:int -> len:int -> int
+val read : file_descr -> buf:bytearray -> pos:int -> len:int -> int
 (** [read fd buff ofs len] reads [len] characters from descriptor
    [fd], storing them in string [buff], starting at position [ofs]
    in string [buff]. Return the number of characters actually read. *)
@@ -994,11 +994,11 @@ type msg_flag = Unix.msg_flag =
    {!UnixLabels.send} and {!UnixLabels.sendto}. *)
 
 val recv :
-  file_descr -> buf:string -> pos:int -> len:int -> mode:msg_flag list -> int
+  file_descr -> buf:bytearray -> pos:int -> len:int -> mode:msg_flag list -> int
 (** Receive data from a connected socket. *)
 
 val recvfrom :
-  file_descr -> buf:string -> pos:int -> len:int -> mode:msg_flag list ->
+  file_descr -> buf:bytearray -> pos:int -> len:int -> mode:msg_flag list ->
     int * sockaddr
 (** Receive data from an unconnected socket. *)
 

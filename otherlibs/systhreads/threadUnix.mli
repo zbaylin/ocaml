@@ -30,14 +30,14 @@ val system : string -> Unix.process_status
 
 (** {6 Basic input/output} *)
 
-val read : Unix.file_descr -> string -> int -> int -> int
+val read : Unix.file_descr -> bytearray -> int -> int -> int
 val write : Unix.file_descr -> string -> int -> int -> int
 
 (** {6 Input/output with timeout} *)
 
 val timed_read :
       Unix.file_descr ->
-      string -> int -> int -> float -> int
+      bytearray -> int -> int -> float -> int
 (** See {!ThreadUnix.timed_write}. *)
 
 val timed_write :
@@ -72,9 +72,9 @@ val socket : Unix.socket_domain ->
              Unix.socket_type -> int -> Unix.file_descr
 val accept : Unix.file_descr -> Unix.file_descr * Unix.sockaddr
 val connect : Unix.file_descr -> Unix.sockaddr -> unit
-val recv : Unix.file_descr -> string ->
+val recv : Unix.file_descr -> bytearray ->
            int -> int -> Unix.msg_flag list -> int
-val recvfrom : Unix.file_descr -> string -> int -> int ->
+val recvfrom : Unix.file_descr -> bytearray -> int -> int ->
                Unix.msg_flag list -> int * Unix.sockaddr
 val send : Unix.file_descr -> string -> int -> int ->
            Unix.msg_flag list -> int

@@ -237,13 +237,14 @@ external openfile : string -> open_flag list -> file_perm -> file_descr
            = "unix_open"
 
 external close : file_descr -> unit = "unix_close"
-external unsafe_read : file_descr -> string -> int -> int -> int = "unix_read"
+external unsafe_read : file_descr -> bytearray -> int -> int -> int
+   = "unix_read"
 external unsafe_write : file_descr -> string -> int -> int -> int = "unix_write"
 external unsafe_single_write : file_descr -> string -> int -> int -> int
    = "unix_single_write"
 
 let read fd buf ofs len =
-  if ofs < 0 || len < 0 || ofs > String.length buf - len
+  if ofs < 0 || len < 0 || ofs > Bytearray.length buf - len
   then invalid_arg "Unix.read"
   else unsafe_read fd buf ofs len
 let write fd buf ofs len =
@@ -529,10 +530,10 @@ external getsockname : file_descr -> sockaddr = "unix_getsockname"
 external getpeername : file_descr -> sockaddr = "unix_getpeername"
 
 external unsafe_recv :
-  file_descr -> string -> int -> int -> msg_flag list -> int
+  file_descr -> bytearray -> int -> int -> msg_flag list -> int
                                   = "unix_recv"
 external unsafe_recvfrom :
-  file_descr -> string -> int -> int -> msg_flag list -> int * sockaddr
+  file_descr -> bytearray -> int -> int -> msg_flag list -> int * sockaddr
                                   = "unix_recvfrom"
 external unsafe_send :
   file_descr -> string -> int -> int -> msg_flag list -> int
@@ -542,11 +543,11 @@ external unsafe_sendto :
                                   = "unix_sendto" "unix_sendto_native"
 
 let recv fd buf ofs len flags =
-  if ofs < 0 || len < 0 || ofs > String.length buf - len
+  if ofs < 0 || len < 0 || ofs > Bytearray.length buf - len
   then invalid_arg "Unix.recv"
   else unsafe_recv fd buf ofs len flags
 let recvfrom fd buf ofs len flags =
-  if ofs < 0 || len < 0 || ofs > String.length buf - len
+  if ofs < 0 || len < 0 || ofs > Bytearray.length buf - len
   then invalid_arg "Unix.recvfrom"
   else unsafe_recvfrom fd buf ofs len flags
 let send fd buf ofs len flags =
