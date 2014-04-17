@@ -170,6 +170,8 @@ external bytes_length : bytes -> int = "%string_length"
 external bytes_create : int -> bytes = "caml_create_string"
 external string_blit : string -> int -> bytes -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
+external bytes_blit : bytes -> int -> bytes -> int -> int -> unit
+                        = "caml_blit_string" "noalloc"
 external bytes_unsafe_to_string : bytes -> string = "%identity"
 external bytes_unsafe_of_string : string -> bytes = "%identity"
 
@@ -221,16 +223,13 @@ let string_of_int n =
   format_int "%d" n
 
 external int_of_string : string -> int = "caml_int_of_string"
-
-module String = struct
-  external get : string -> int -> char = "%string_safe_get"
-end
+external string_get : string -> int -> char = "%string_safe_get"
 
 let valid_float_lexem s =
   let l = string_length s in
   let rec loop i =
     if i >= l then s ^ "." else
-    match s.[i] with
+    match string_get s i with
     | '0' .. '9' | '-' -> loop (i + 1)
     | _ -> s
   in
@@ -367,8 +366,6 @@ let really_input_string ic len =
   bytes_unsafe_to_string s
 
 external input_scan_line : in_channel -> int = "caml_ml_input_scan_line"
-external bytes_blit : bytes -> int -> bytes -> int -> int -> unit
-                        = "caml_blit_string" "noalloc"
 
 let input_line chan =
   let rec build_result buf pos = function
@@ -413,7 +410,7 @@ external set_binary_mode_in : in_channel -> bool -> unit
 
 let print_char c = output_char stdout c
 let print_string s = output_string stdout s
-let print_bytes s = output stdout s 0 (bytes_length s)
+let print_bytes s = output_bytes stdout s
 let print_int i = output_string stdout (string_of_int i)
 let print_float f = output_string stdout (string_of_float f)
 let print_endline s =
