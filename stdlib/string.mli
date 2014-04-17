@@ -63,7 +63,7 @@ external get : string -> int -> char = "%string_safe_get"
 
 
 external set : bytes -> int -> char -> unit = "%string_safe_set"
-  [@@deprecated]
+  [@@ocaml.deprecated]
 (** [String.set s n c] modifies byte sequence [s] in place,
    replacing the byte at index [n] with [c].
 
@@ -72,7 +72,7 @@ external set : bytes -> int -> char -> unit = "%string_safe_set"
    @deprecated This is a deprecated alias of {!Bytes.set}.
 *)
 
-external create : int -> bytes = "caml_create_string" [@@deprecated]
+external create : int -> bytes = "caml_create_string" [@@ocaml.deprecated]
 (** [String.create n] returns a fresh byte sequence of length [n].
    The sequence is uninitialized and contains arbitrary bytes.
 
@@ -101,7 +101,7 @@ val sub : string -> int -> int -> string
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid range of [s]. *)
 
-val fill : bytes -> int -> int -> char -> unit [@@deprecated]
+val fill : bytes -> int -> int -> char -> unit [@@ocaml.deprecated]
 (** [String.fill s start len c] modifies byte sequence [s] in place,
    replacing [len] bytes by [c], starting at [start].
 
@@ -236,10 +236,10 @@ val compare: t -> t -> int
 
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
 external unsafe_set : bytes -> int -> char -> unit = "%string_unsafe_set"
-  [@@deprecated]
+  [@@ocaml.deprecated]
 external unsafe_blit :
   string -> int -> bytes -> int -> int -> unit
   = "caml_blit_string" "noalloc"
 external unsafe_fill :
   bytes -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
-  [@@deprecated]
+  [@@ocaml.deprecated]

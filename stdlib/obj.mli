@@ -47,7 +47,7 @@ val string_tag : int   (* both [string] and [bytes] *)
 val double_tag : int
 val double_array_tag : int
 val custom_tag : int
-val final_tag : int [@@deprecated]
+val final_tag : int [@@ocaml.deprecated]
 
 val int_tag : int
 val out_of_heap_tag : int
@@ -56,5 +56,5 @@ val unaligned_tag : int   (* should never happen @since 3.11.0 *)
 (** The following two functions are deprecated.  Use module {!Marshal}
     instead. *)
 
-val marshal : t -> bytes [@@deprecated]
-val unmarshal : bytes -> int -> t * int [@@deprecated]
+val marshal : t -> bytes [@@ocaml.deprecated]
+val unmarshal : bytes -> int -> t * int [@@ocaml.deprecated]
