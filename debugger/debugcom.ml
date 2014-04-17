@@ -190,7 +190,7 @@ let input_remote_value ic =
   really_input_string ic value_size
 
 let output_remote_value ic v =
-  output ic v 0 value_size
+  output_substring ic v 0 value_size
 
 exception Marshalling_error
 
