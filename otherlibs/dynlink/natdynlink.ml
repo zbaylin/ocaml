@@ -59,7 +59,7 @@ let read_file filename priv =
   if Obj.tag (Obj.repr res) = Obj.string_tag
   then raise (Error (Cannot_open_dll (Obj.magic res)));
 
-  let header : dynheader = Marshal.from_string data 0 in
+  let header : dynheader = Marshal.from_bytes data 0 in
   if header.dynu_magic <> cmxs_magic_number
   then raise(Error(Not_a_bytecode_file dll));
   (dll, handle, header.dynu_units)
@@ -92,7 +92,7 @@ let inited = ref false
 
 let default_available_units () =
   let map : (string*Digest.t*Digest.t*string list) list =
-    Marshal.from_string (ndl_getmap ()) 0 in
+    Marshal.from_bytes (ndl_getmap ()) 0 in
   let exe = Sys.executable_name in
   let rank = ref 0 in
   global_state :=

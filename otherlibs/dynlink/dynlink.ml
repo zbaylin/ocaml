@@ -191,7 +191,7 @@ let check_unsafe_module cu =
 
 (* Load in-core and execute a bytecode object file *)
 
-external register_code_fragment: string -> int -> string -> unit
+external register_code_fragment: bytes -> int -> string -> unit
                                = "caml_register_code_fragment"
 
 let load_compunit ic file_name file_digest compunit =
@@ -201,14 +201,14 @@ let load_compunit ic file_name file_digest compunit =
   let code_size = compunit.cu_codesize + 8 in
   let code = Meta.static_alloc code_size in
   unsafe_really_input ic code 0 compunit.cu_codesize;
-  String.unsafe_set code compunit.cu_codesize (Char.chr Opcodes.opRETURN);
-  String.unsafe_set code (compunit.cu_codesize + 1) '\000';
-  String.unsafe_set code (compunit.cu_codesize + 2) '\000';
-  String.unsafe_set code (compunit.cu_codesize + 3) '\000';
-  String.unsafe_set code (compunit.cu_codesize + 4) '\001';
-  String.unsafe_set code (compunit.cu_codesize + 5) '\000';
-  String.unsafe_set code (compunit.cu_codesize + 6) '\000';
-  String.unsafe_set code (compunit.cu_codesize + 7) '\000';
+  Bytes.unsafe_set code compunit.cu_codesize (Char.chr Opcodes.opRETURN);
+  Bytes.unsafe_set code (compunit.cu_codesize + 1) '\000';
+  Bytes.unsafe_set code (compunit.cu_codesize + 2) '\000';
+  Bytes.unsafe_set code (compunit.cu_codesize + 3) '\000';
+  Bytes.unsafe_set code (compunit.cu_codesize + 4) '\001';
+  Bytes.unsafe_set code (compunit.cu_codesize + 5) '\000';
+  Bytes.unsafe_set code (compunit.cu_codesize + 6) '\000';
+  Bytes.unsafe_set code (compunit.cu_codesize + 7) '\000';
   let initial_symtable = Symtable.current_state() in
   begin try
     Symtable.patch_object code compunit.cu_reloc;

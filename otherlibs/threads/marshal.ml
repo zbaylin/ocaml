@@ -16,7 +16,7 @@ type extern_flags =
   | Closures
   | Compat_32
 
-external to_bytes: 'a -> extern_flags list -> string
+external to_bytes: 'a -> extern_flags list -> bytes
     = "caml_output_value_to_string"
 
 external to_string: 'a -> extern_flags list -> string
@@ -37,7 +37,7 @@ let to_buffer buff ofs len v flags =
 external from_channel: in_channel -> 'a = "caml_input_value"
 external from_bytes_unsafe: bytes -> int -> 'a
          = "caml_input_value_from_string"
-external data_size_unsafe: string -> int -> int = "caml_marshal_data_size"
+external data_size_unsafe: bytes -> int -> int = "caml_marshal_data_size"
 
 let header_size = 20
 let data_size buff ofs =
