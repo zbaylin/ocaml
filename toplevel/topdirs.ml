@@ -75,7 +75,7 @@ let load_compunit ic filename ppf compunit =
   let code_size = compunit.cu_codesize + 8 in
   let code = Meta.static_alloc code_size in
   unsafe_really_input ic code 0 compunit.cu_codesize;
-  Bytearray.unsafe_set code compunit.cu_codesize (Char.chr Opcodes.opRETURN);
+  Bytes.unsafe_set code compunit.cu_codesize (Char.chr Opcodes.opRETURN);
   String.unsafe_blit "\000\000\000\001\000\000\000" 0
                      code (compunit.cu_codesize + 1) 7;
   let initial_symtable = Symtable.current_state() in

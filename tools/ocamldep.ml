@@ -156,20 +156,20 @@ let print_filename s =
       else count n (i+1)
     in
     let spaces = count 0 0 in
-    let result = Bytearray.create (String.length s + spaces) in
+    let result = Bytes.create (String.length s + spaces) in
     let rec loop i j =
       if i >= String.length s then ()
       else if s.[i] = ' ' then begin
-        Bytearray.set result j '\\';
-        Bytearray.set result (j+1) ' ';
+        Bytes.set result j '\\';
+        Bytes.set result (j+1) ' ';
         loop (i+1) (j+2);
       end else begin
-        Bytearray.set result j s.[i];
+        Bytes.set result j s.[i];
         loop (i+1) (j+1);
       end
     in
     loop 0 0;
-    print_bytearray result;
+    print_bytes result;
   end
 ;;
 

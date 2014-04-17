@@ -11,34 +11,35 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* String operations, based on bytearray operations *)
+(* String operations, based on byte sequence operations *)
 
 external length : string -> int = "%string_length"
 external get : string -> int -> char = "%string_safe_get"
-external set : bytearray -> int -> char -> unit = "%string_safe_set"
-external create : int -> bytearray = "caml_create_string"
+external set : bytes -> int -> char -> unit = "%string_safe_set"
+external create : int -> bytes = "caml_create_string"
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
-external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
-external unsafe_blit : string -> int ->  bytearray -> int -> int -> unit
+external unsafe_set : bytes -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_blit : string -> int ->  bytes -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
-external unsafe_fill : bytearray -> int -> int -> char -> unit
+external unsafe_fill : bytes -> int -> int -> char -> unit
                      = "caml_fill_string" "noalloc"
 
-module BA = Bytearray
+module B = Bytes
 
-let make = (Obj.magic BA.make : int -> char -> string)
-let copy = (Obj.magic BA.copy : string -> string)
-let sub = (Obj.magic BA.sub : string -> int -> int -> string)
-let fill = BA.fill
+let make = (Obj.magic B.make : int -> char -> string)
+let copy = (Obj.magic B.copy : string -> string)
+let sub = (Obj.magic B.sub : string -> int -> int -> string)
+let fill = B.fill
 let blit =
-  (Obj.magic BA.blit : string -> int -> bytearray -> int -> int -> unit)
-let concat = (Obj.magic BA.concat : string -> string list -> string)
-let iter = (Obj.magic BA.iter : (char -> unit) -> string -> unit)
-let iteri = (Obj.magic BA.iteri : (int -> char -> unit) -> string -> unit)
-let map = (Obj.magic BA.map : (char -> char) -> string -> string)
+  (Obj.magic B.blit : string -> int -> bytes -> int -> int -> unit)
+let concat = (Obj.magic B.concat : string -> string list -> string)
+let iter = (Obj.magic B.iter : (char -> unit) -> string -> unit)
+let iteri = (Obj.magic B.iteri : (int -> char -> unit) -> string -> unit)
+let map = (Obj.magic B.map : (char -> char) -> string -> string)
 
-(* Beware: we cannot use BA.trim or BA.escape because they always make a copy,
-   but our spec says we don't copy in some cases *)
+(* Beware: we cannot use B.trim or B.escape because they always make a copy,
+   but our specification spells out some cases where we are not allowed to
+   make a copy. *)
 
 external is_printable: char -> bool = "caml_is_printable"
 
@@ -49,7 +50,7 @@ let is_space = function
 let trim s =
   if s = "" then s
   else if is_space (unsafe_get s 0) || is_space (unsafe_get s (length s - 1))
-    then BA.unsafe_to_string (BA.trim (BA.unsafe_of_string s))
+    then B.unsafe_to_string (B.trim (B.unsafe_of_string s))
   else s
 
 let escaped s =
@@ -61,22 +62,22 @@ let escaped s =
       | _ -> true
   in
   if needs_escape 0 then
-    BA.unsafe_to_string (BA.escaped (BA.unsafe_of_string s))
+    B.unsafe_to_string (B.escaped (B.unsafe_of_string s))
   else
     s
 
-let index = (Obj.magic BA.index : string -> char -> int)
-let rindex = (Obj.magic BA.rindex : string -> char -> int)
-let index_from = (Obj.magic BA.index_from : string -> int -> char -> int)
-let rindex_from = (Obj.magic BA.rindex_from : string -> int -> char -> int)
-let contains = (Obj.magic BA.contains : string -> char -> bool)
-let contains_from = (Obj.magic BA.contains_from : string -> int -> char -> bool)
+let index = (Obj.magic B.index : string -> char -> int)
+let rindex = (Obj.magic B.rindex : string -> char -> int)
+let index_from = (Obj.magic B.index_from : string -> int -> char -> int)
+let rindex_from = (Obj.magic B.rindex_from : string -> int -> char -> int)
+let contains = (Obj.magic B.contains : string -> char -> bool)
+let contains_from = (Obj.magic B.contains_from : string -> int -> char -> bool)
 let rcontains_from =
-  (Obj.magic BA.rcontains_from : string -> int -> char -> bool)
-let uppercase = (Obj.magic BA.uppercase : string -> string)
-let lowercase = (Obj.magic BA.lowercase : string -> string)
-let capitalize = (Obj.magic BA.capitalize : string -> string)
-let uncapitalize = (Obj.magic BA.uncapitalize : string -> string)
+  (Obj.magic B.rcontains_from : string -> int -> char -> bool)
+let uppercase = (Obj.magic B.uppercase : string -> string)
+let lowercase = (Obj.magic B.lowercase : string -> string)
+let capitalize = (Obj.magic B.capitalize : string -> string)
+let uncapitalize = (Obj.magic B.uncapitalize : string -> string)
 
 type t = string
 

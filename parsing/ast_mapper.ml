@@ -12,7 +12,7 @@
 
 (* A generic Parsetree mapping class *)
 
-;; [@@warning "+9"]
+(* ;; [@@warning "+9"]   FIXME: breaks "make alldepend" *)
   (* Ensure that record patterns don't miss any field. *)
 
 

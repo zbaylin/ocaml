@@ -11,20 +11,20 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* Bytearray operations *)
+(* Byte sequence operations *)
 
-external length : bytearray -> int = "%string_length"
-external get : bytearray -> int -> char = "%string_safe_get"
-external set : bytearray -> int -> char -> unit = "%string_safe_set"
-external create : int -> bytearray = "caml_create_string"
-external unsafe_get : bytearray -> int -> char = "%string_unsafe_get"
-external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
-external unsafe_blit : bytearray -> int -> bytearray -> int -> int -> unit
+external length : bytes -> int = "%string_length"
+external get : bytes -> int -> char = "%string_safe_get"
+external set : bytes -> int -> char -> unit = "%string_safe_set"
+external create : int -> bytes = "caml_create_string"
+external unsafe_get : bytes -> int -> char = "%string_unsafe_get"
+external unsafe_set : bytes -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_blit : bytes -> int -> bytes -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
-external unsafe_fill : bytearray -> int -> int -> char -> unit
+external unsafe_fill : bytes -> int -> int -> char -> unit
                      = "caml_fill_string" "noalloc"
-external unsafe_to_string : bytearray -> string = "%identity"
-external unsafe_of_string : string -> bytearray = "%identity"
+external unsafe_to_string : bytes -> string = "%identity"
+external unsafe_of_string : string -> bytes = "%identity"
 
 let make n c =
   let s = create n in
@@ -206,6 +206,6 @@ let rcontains_from s i c =
   if i < 0 || i >= length s then invalid_arg "String.rcontains_from" else
   try ignore (rindex_rec s i c); true with Not_found -> false;;
 
-type t = bytearray
+type t = bytes
 
 let compare (x: t) (y: t) = Pervasives.compare x y

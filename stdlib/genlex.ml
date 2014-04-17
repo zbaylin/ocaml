@@ -21,7 +21,7 @@ type token =
 
 (* The string buffering machinery *)
 
-let initial_buffer = Bytearray.create 32
+let initial_buffer = Bytes.create 32
 
 let buffer = ref initial_buffer
 let bufpos = ref 0
@@ -29,16 +29,16 @@ let bufpos = ref 0
 let reset_buffer () = buffer := initial_buffer; bufpos := 0
 
 let store c =
-  if !bufpos >= Bytearray.length !buffer then
+  if !bufpos >= Bytes.length !buffer then
     begin
-      let newbuffer = Bytearray.create (2 * !bufpos) in
-      Bytearray.blit !buffer 0 newbuffer 0 !bufpos; buffer := newbuffer
+      let newbuffer = Bytes.create (2 * !bufpos) in
+      Bytes.blit !buffer 0 newbuffer 0 !bufpos; buffer := newbuffer
     end;
-  Bytearray.set !buffer !bufpos c;
+  Bytes.set !buffer !bufpos c;
   incr bufpos
 
 let get_string () =
-  let s = Bytearray.sub_string !buffer 0 !bufpos in buffer := initial_buffer; s
+  let s = Bytes.sub_string !buffer 0 !bufpos in buffer := initial_buffer; s
 
 (* The lexer *)
 

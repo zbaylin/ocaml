@@ -19,4 +19,4 @@ module List = ListLabels
 
 module String = StringLabels
 
-module Bytearray = BytearrayLabels
+module Bytes = BytesLabels

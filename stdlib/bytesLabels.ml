@@ -11,6 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* Module [BytearrayLabels]: labelled Bytearray module *)
+(* Module [BytesLabels]: labelled Bytes module *)
 
-include Bytearray
+include Bytes

@@ -167,15 +167,15 @@ type fpclass =
   | FP_nan
 external classify_float : float -> fpclass = "caml_classify_float"
 
-(* String and bytearray operations -- more in modules String and Bytearray *)
+(* String and byte sequence operations -- more in modules String and Bytes *)
 
 external string_length : string -> int = "%string_length"
-external bytearray_length : bytearray -> int = "%string_length"
+external bytes_length : bytes -> int = "%string_length"
 external string_create : int -> string = "caml_create_string"
-external string_blit : string -> int -> bytearray -> int -> int -> unit
+external string_blit : string -> int -> bytes -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
-external bytearray_unsafe_to_string : bytearray -> string = "%identity"
-external bytearray_unsafe_of_string : string -> bytearray = "%identity"
+external bytes_unsafe_to_string : bytes -> string = "%identity"
+external bytes_unsafe_of_string : string -> bytes = "%identity"
 
 let ( ^ ) s1 s2 =
   let l1 = string_length s1 and l2 = string_length s2 in
@@ -344,6 +344,9 @@ let rec output_char oc c =
   with Sys_blocked_io ->
     wait_outchan oc 1; output_char oc c
 
+let output_bytes oc s =
+  unsafe_output oc s 0 (bytes_length s)
+
 let output_string oc s =
   unsafe_output oc s 0 (string_length s)
 
@@ -498,7 +501,7 @@ external set_binary_mode_in : in_channel -> bool -> unit
 
 let print_char c = output_char stdout c
 let print_string s = output_string stdout s
-let print_bytearray = print_string
+let print_bytes = print_string
 let print_int i = output_string stdout (string_of_int i)
 let print_float f = output_string stdout (string_of_float f)
 let print_endline s =

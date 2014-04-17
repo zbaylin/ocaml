@@ -204,23 +204,23 @@ module String = struct
 
   let rev s =
     let sl = String.length s in
-    let s' = Bytearray.create sl in
+    let s' = Bytes.create sl in
     for i = 0 to sl - 1 do
-      Bytearray.set s' i s.[sl - i - 1]
+      Bytes.set s' i s.[sl - i - 1]
     done;
-    Bytearray.to_string s';;
+    Bytes.to_string s';;
 
   let implode l =
     match l with
     | [] -> ""
     | cs ->
-        let r = Bytearray.create (List.length cs) in
+        let r = Bytes.create (List.length cs) in
         let pos = ref 0 in
         List.iter begin fun c ->
-          Bytearray.unsafe_set r !pos c;
+          Bytes.unsafe_set r !pos c;
           incr pos
         end cs;
-        Bytearray.to_string r
+        Bytes.to_string r
 
   let explode s =
     let sl = String.length s in
@@ -307,7 +307,7 @@ let copy_chan ic oc =
   let m = in_channel_length ic in
   let m = (m lsr 12) lsl 12 in
   let m = max 16384 (min Sys.max_string_length m) in
-  let buf = Bytearray.create m in
+  let buf = Bytes.create m in
   let rec loop () =
     let len = input ic buf 0 m in
     if len > 0 then begin

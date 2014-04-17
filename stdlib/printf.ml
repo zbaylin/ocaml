@@ -100,11 +100,11 @@ let parse_string_conversion sfmt =
 let pad_string pad_char p neg s i len =
   if p = len && i = 0 then s else
   if p <= len then String.sub s i len else
-  let res = Bytearray.make p pad_char in
+  let res = Bytes.make p pad_char in
   if neg
   then String.blit s i res 0 len
   else String.blit s i res (p - len) len;
-  Bytearray.unsafe_to_string res
+  Bytes.unsafe_to_string res
 ;;
 
 (* Format a string given a %s format, e.g. %40s or %-20s.

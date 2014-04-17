@@ -24,8 +24,8 @@ type t
 
 val create : int -> t
 (** [create n] returns a fresh buffer, initially empty.
-   The [n] parameter is the initial size of the internal bytearray
-   that holds the buffer contents. That bytearray is automatically
+   The [n] parameter is the initial size of the internal byte sequence
+   that holds the buffer contents. That byte sequence is automatically
    reallocated when more than [n] characters are stored in the buffer,
    but shrinks back to [n] characters when [reset] is called.
    For best performance, [n] should be of the same order of magnitude
@@ -40,7 +40,7 @@ val contents : t -> string
 (** Return a copy of the current contents of the buffer.
    The buffer itself is unchanged. *)
 
-val to_bytearray : t -> bytearray
+val to_bytes : t -> bytes
 (** Return a copy of the current contents of the buffer.
    The buffer itself is unchanged. *)
 
@@ -50,7 +50,7 @@ current contents of the buffer [b] starting at offset [off] of length
 [len] bytes. May raise [Invalid_argument] if out of bounds request. The
 buffer itself is unaffected. *)
 
-val blit : t -> int -> bytearray -> int -> int -> unit
+val blit : t -> int -> bytes -> int -> int -> unit
 (** [Buffer.blit src srcoff dst dstoff len] copies [len] characters from
    the current contents of the buffer [src], starting at offset [srcoff]
    to [dst], starting at character [dstoff].
@@ -72,8 +72,8 @@ val clear : t -> unit
 (** Empty the buffer. *)
 
 val reset : t -> unit
-(** Empty the buffer and deallocate the internal bytearray holding the
-   buffer contents, replacing it with the initial internal bytearray
+(** Empty the buffer and deallocate the internal byte sequence holding the
+   buffer contents, replacing it with the initial internal byte sequence
    of length [n] that was allocated by {!Buffer.create} [n].
    For long-lived buffers that may have grown a lot, [reset] allows
    faster reclamation of the space used by the buffer. *)
@@ -84,13 +84,16 @@ val add_char : t -> char -> unit
 val add_string : t -> string -> unit
 (** [add_string b s] appends the string [s] at the end of the buffer [b]. *)
 
+val add_bytes : t -> bytes -> unit
+(** [add_string b s] appends the string [s] at the end of the buffer [b]. *)
+
 val add_substring : t -> string -> int -> int -> unit
 (** [add_substring b s ofs len] takes [len] characters from offset
    [ofs] in string [s] and appends them at the end of the buffer [b]. *)
 
-val add_subarray : t -> bytearray -> int -> int -> unit
+val add_subbytes : t -> bytes -> int -> int -> unit
 (** [add_substring b s ofs len] takes [len] characters from offset
-   [ofs] in bytearray [s] and appends them at the end of the buffer [b]. *)
+   [ofs] in byte sequence [s] and appends them at the end of the buffer [b]. *)
 
 val add_substitute : t -> (string -> string) -> string -> unit
 (** [add_substitute b f s] appends the string pattern [s] at the end

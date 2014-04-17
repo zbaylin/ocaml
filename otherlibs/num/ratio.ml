@@ -438,7 +438,7 @@ let approx_ratio_fix n r =
                    r.denominator)) in
        (* Round up and add 1 in front if needed *)
        let s2 =
-         if round_futur_last_digit (Bytearray.unsafe_of_string s1) 0
+         if round_futur_last_digit (Bytes.unsafe_of_string s1) 0
                                    (String.length s1)
          then "1" ^ s1
          else s1 in
@@ -448,18 +448,18 @@ let approx_ratio_fix n r =
             if s2 without last digit is      yy with <= n digits:
                <sign> 0 . 0yy *)
        if l2 > n then begin
-         let s = Bytearray.make (l2 + 2) '0' in
-         Bytearray.set s 0  (if sign_r = -1 then '-' else '+');
+         let s = Bytes.make (l2 + 2) '0' in
+         Bytes.set s 0  (if sign_r = -1 then '-' else '+');
          String.blit s2 0 s 1 (l2 - n);
-         Bytearray.set s (l2 - n + 1) '.';
+         Bytes.set s (l2 - n + 1) '.';
          String.blit s2 (l2 - n) s (l2 - n + 2) n;
-         Bytearray.unsafe_to_string s
+         Bytes.unsafe_to_string s
        end else begin
-         let s = Bytearray.make (n + 3) '0' in
-         Bytearray.set s 0  (if sign_r = -1 then '-' else '+');
-         Bytearray.set s 2 '.';
+         let s = Bytes.make (n + 3) '0' in
+         Bytes.set s 0  (if sign_r = -1 then '-' else '+');
+         Bytes.set s 2 '.';
          String.blit s2 0 s (n + 3 - l2) l2;
-         Bytearray.unsafe_to_string s
+         Bytes.unsafe_to_string s
        end
      end else begin
        (* Dubious; what is this code supposed to do? *)
@@ -469,10 +469,10 @@ let approx_ratio_fix n r =
                     (base_power_big_int
                       10 (-n) r.denominator)) in
        let len = succ (String.length s) in
-       let s' = Bytearray.make len '0' in
-        Bytearray.set s' 0 (if sign_r = -1 then '-' else '+');
+       let s' = Bytes.make len '0' in
+        Bytes.set s' 0 (if sign_r = -1 then '-' else '+');
         String.blit s 0 s' 1 (pred len);
-        Bytearray.unsafe_to_string s'
+        Bytes.unsafe_to_string s'
      end
 
 (* Number of digits of the decimal representation of an int *)
@@ -506,29 +506,29 @@ let approx_ratio_exp n r =
                                 10 k (abs_big_int r.numerator))
                                r.denominator) in
        string_of_nat nat) in
-     if round_futur_last_digit (Bytearray.unsafe_of_string s) 0
+     if round_futur_last_digit (Bytes.unsafe_of_string s) 0
                                (String.length s)
       then
        let m = num_decimal_digits_int (succ msd) in
-       let str = Bytearray.make (n + m + 4) '0' in
+       let str = Bytes.make (n + m + 4) '0' in
          (String.blit (if sign_r = -1 then "-1." else "+1.") 0 str 0 3);
-         Bytearray.set str !i ('e');
+         Bytes.set str !i ('e');
          incr i;
          (if m = 0
-          then Bytearray.set str !i '0'
+          then Bytes.set str !i '0'
           else String.blit (string_of_int (succ msd)) 0 str !i m);
-         Bytearray.unsafe_to_string str
+         Bytes.unsafe_to_string str
      else
       let m = num_decimal_digits_int (succ msd)
       and p = n + 3 in
-      let str = Bytearray.make (succ (m + p)) '0' in
+      let str = Bytes.make (succ (m + p)) '0' in
         (String.blit (if sign_r = -1 then "-0." else "+0.") 0 str 0 3);
         (String.blit s 0 str 3 n);
-        Bytearray.set str p 'e';
+        Bytes.set str p 'e';
         (if m = 0
-          then Bytearray.set str (succ p) '0'
+          then Bytes.set str (succ p) '0'
           else (String.blit (string_of_int (succ msd)) 0 str (succ p) m));
-        Bytearray.unsafe_to_string str
+        Bytes.unsafe_to_string str
 
 (* String approximation of a rational with a fixed number of significant *)
 (* digits printed                                                        *)

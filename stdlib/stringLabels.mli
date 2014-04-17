@@ -26,14 +26,14 @@ external get : string -> int -> char = "%string_safe_get"
    if [n] is outside the range 0 to [(String.length s - 1)]. *)
 
 
-external set : bytearray -> int -> char -> unit = "%string_safe_set"
+external set : bytes -> int -> char -> unit = "%string_safe_set"
 (** [String.set s n c] modifies string [s] in place,
    replacing the character number [n] by [c].
    You can also write [s.[n] <- c] instead of [String.set s n c].
    Raise [Invalid_argument "index out of bounds"]
    if [n] is outside the range 0 to [(String.length s - 1)]. *)
 
-external create : int -> bytearray = "caml_create_string"
+external create : int -> bytes = "caml_create_string"
 (** [String.create n] returns a fresh string of length [n].
    The string initially contains arbitrary characters.
    Raise [Invalid_argument] if [n < 0] or [n > Sys.max_string_length].
@@ -55,7 +55,7 @@ val sub : string -> pos:int -> len:int -> string
    designate a valid substring of [s]; that is, if [start < 0],
    or [len < 0], or [start + len > ]{!StringLabels.length}[ s]. *)
 
-val fill : bytearray -> pos:int -> len:int -> char -> unit
+val fill : bytes -> pos:int -> len:int -> char -> unit
 (** [String.fill s start len c] modifies string [s] in place,
    replacing the characters number [start] to [start + len - 1]
    by [c].
@@ -63,7 +63,7 @@ val fill : bytearray -> pos:int -> len:int -> char -> unit
    designate a valid substring of [s]. *)
 
 val blit :
-  src:string -> src_pos:int -> dst:bytearray -> dst_pos:int -> len:int
+  src:string -> src_pos:int -> dst:bytes -> dst_pos:int -> len:int
   -> unit
 (** [String.blit src srcoff dst dstoff len] copies [len] characters
    from string [src], starting at character number [srcoff], to
@@ -177,9 +177,9 @@ val compare: t -> t -> int
 (* The following is for system use only. Do not call directly. *)
 
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
-external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_set : bytes -> int -> char -> unit = "%string_unsafe_set"
 external unsafe_blit :
-  src:string -> src_pos:int -> dst:bytearray -> dst_pos:int -> len:int ->
+  src:string -> src_pos:int -> dst:bytes -> dst_pos:int -> len:int ->
     unit = "caml_blit_string" "noalloc"
 external unsafe_fill :
-  bytearray -> pos:int -> len:int -> char -> unit = "caml_fill_string" "noalloc"
+  bytes -> pos:int -> len:int -> char -> unit = "caml_fill_string" "noalloc"

@@ -13,6 +13,8 @@
 
 (** String operations.
 
+FIXME (bring this into line with bytes.mli)
+
   Given a string [s] of length [l], we call character number in [s]
   the index of a character in [s].  Indexes start at [0], and we will
   call a character number valid in [s] if it falls within the range
@@ -60,23 +62,23 @@ external get : string -> int -> char = "%string_safe_get"
    Raise [Invalid_argument] if [n] not a valid character number in [s]. *)
 
 
-external set : bytearray -> int -> char -> unit = "%string_safe_set"
+external set : bytes -> int -> char -> unit = "%string_safe_set"
   [@@deprecated]
-(** [String.set s n c] modifies bytearray [s] in place,
-   replacing the character number [n] by [c].
+(** [String.set s n c] modifies byte sequence [s] in place,
+   replacing the byte at index [n] with [c].
 
-   Raise [Invalid_argument] if [n] is not a valid character number in [s].
+   Raise [Invalid_argument] if [n] is not a valid index in [s].
 
-   @deprecated This is a deprecated alias of {!Bytearray.set}.
+   @deprecated This is a deprecated alias of {!Bytes.set}.
 *)
 
-external create : int -> bytearray = "caml_create_string" [@@deprecated]
-(** [String.create n] returns a fresh bytearray of length [n].
-   The bytearray initially contains arbitrary characters.
+external create : int -> bytes = "caml_create_string" [@@deprecated]
+(** [String.create n] returns a fresh byte sequence of length [n].
+   The sequence is uninitialized and contains arbitrary bytes.
 
    Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.
 
-   @deprecated This is a deprecated alias of {!Bytearray.create}.
+   @deprecated This is a deprecated alias of {!Bytes.create}.
 *)
 
 val make : int -> char -> string
@@ -99,22 +101,20 @@ val sub : string -> int -> int -> string
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid range of [s]. *)
 
-val fill : bytearray -> int -> int -> char -> unit [@@deprecated]
-(** [String.fill s start len c] modifies bytearray [s] in place,
-   replacing [len] characters by [c], starting at [start].
+val fill : bytes -> int -> int -> char -> unit [@@deprecated]
+(** [String.fill s start len c] modifies byte sequence [s] in place,
+   replacing [len] bytes by [c], starting at [start].
 
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid range of [s].
 
-   @deprecated This is a deprecated alias of {!Bytearray.fill}.
+   @deprecated This is a deprecated alias of {!Bytes.fill}.
 *)
 
-val blit : string -> int -> bytearray -> int -> int -> unit
-(** [String.blit src srcoff dst dstoff len] copies [len] characters
-   from the string or bytearray [src], starting at character number [srcoff],
-   to bytearray [dst], starting at character number [dstoff]. It works
-   correctly even if [src] and [dst] are the same bytearray,
-   and the source and destination intervals overlap.
+val blit : string -> int -> bytes -> int -> int -> unit
+(** [String.blit src srcoff dst dstoff len] copies [len] bytes
+   from the string [src], starting at index [srcoff],
+   to byte sequence [dst], starting at character number [dstoff].
 
    Raise [Invalid_argument] if [srcoff] and [len] do not
    designate a valid range of [src], or if [dstoff] and [len]
@@ -235,11 +235,11 @@ val compare: t -> t -> int
 (* The following is for system use only. Do not call directly. *)
 
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
-external unsafe_set : bytearray -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_set : bytes -> int -> char -> unit = "%string_unsafe_set"
   [@@deprecated]
 external unsafe_blit :
-  string -> int -> bytearray -> int -> int -> unit
+  string -> int -> bytes -> int -> int -> unit
   = "caml_blit_string" "noalloc"
 external unsafe_fill :
-  bytearray -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
+  bytes -> int -> int -> char -> unit = "caml_fill_string" "noalloc"
   [@@deprecated]

@@ -99,19 +99,24 @@ val to_channel : out_channel -> 'a -> extern_flags list -> unit
    it has no effect if marshaling is performed on a 32-bit platform.
  *)
 
-external to_string :
-  'a -> extern_flags list -> string = "caml_output_value_to_string"
-(** [Marshal.to_string v flags] returns a string containing
-   the representation of [v] as a sequence of bytes.
+external to_bytes :
+  'a -> extern_flags list -> bytes = "caml_output_value_to_string"
+(** [Marshal.to_string v flags] returns a byte sequence containing
+   the representation of [v].
    The [flags] argument has the same meaning as for
    {!Marshal.to_channel}. *)
 
-val to_buffer : bytearray -> int -> int -> 'a -> extern_flags list -> int
+external to_string :
+  'a -> extern_flags list -> string = "caml_output_value_to_string"
+(** Same as [to_bytes] but return the result as a string instead of
+    a byte sequence. *)
+
+val to_buffer : bytes -> int -> int -> 'a -> extern_flags list -> int
 (** [Marshal.to_buffer buff ofs len v flags] marshals the value [v],
-   storing its byte representation in the bytearray [buff],
-   starting at character number [ofs], and writing at most
-   [len] characters.  It returns the number of characters
-   actually written to the bytearray. If the byte representation
+   storing its byte representation in the sequence [buff],
+   starting at index [ofs], and writing at most
+   [len] bytes.  It returns the number of bytes
+   actually written to the sequence. If the byte representation
    of [v] does not fit in [len] characters, the exception [Failure]
    is raised. *)
 
@@ -121,36 +126,40 @@ val from_channel : in_channel -> 'a
    one of the [Marshal.to_*] functions, and reconstructs and
    returns the corresponding value.*)
 
-val from_string : bytearray -> int -> 'a
-(** [Marshal.from_string buff ofs] unmarshals a structured value
+val from_bytes : bytes -> int -> 'a
+(** [Marshal.from_bytes buff ofs] unmarshals a structured value
    like {!Marshal.from_channel} does, except that the byte
    representation is not read from a channel, but taken from
    the string [buff], starting at position [ofs]. *)
+
+val from_string : string -> int -> 'a
+(** Same as [from_bytes] but take a string as argument instead of a
+    byte sequence. *)
 
 val header_size : int
 (** The bytes representing a marshaled value are composed of
    a fixed-size header and a variable-sized data part,
    whose size can be determined from the header.
-   {!Marshal.header_size} is the size, in characters, of the header.
-   {!Marshal.data_size}[ buff ofs] is the size, in characters,
+   {!Marshal.header_size} is the size, in bytes, of the header.
+   {!Marshal.data_size}[ buff ofs] is the size, in bytes,
    of the data part, assuming a valid header is stored in
    [buff] starting at position [ofs].
    Finally, {!Marshal.total_size} [buff ofs] is the total size,
-   in characters, of the marshaled value.
+   in bytes, of the marshaled value.
    Both {!Marshal.data_size} and {!Marshal.total_size} raise [Failure]
    if [buff], [ofs] does not contain a valid header.
 
    To read the byte representation of a marshaled value into
-   a bytearray, the program needs to read first
-   {!Marshal.header_size} characters into the bytearray,
+   a byte sequence, the program needs to read first
+   {!Marshal.header_size} bytes into the sequence,
    then determine the length of the remainder of the
    representation using {!Marshal.data_size},
-   make sure the bytearray is large enough to hold the remaining
-   data, then read it, and finally call {!Marshal.from_string}
+   make sure the sequence is large enough to hold the remaining
+   data, then read it, and finally call {!Marshal.from_bytes}
    to unmarshal the value. *)
 
-val data_size : bytearray -> int -> int
+val data_size : bytes -> int -> int
 (** See {!Marshal.header_size}.*)
 
-val total_size : bytearray -> int -> int
+val total_size : bytes -> int -> int
 (** See {!Marshal.header_size}.*)

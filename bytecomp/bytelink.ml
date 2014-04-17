@@ -35,8 +35,9 @@ type link_action =
   | Link_archive of string * compilation_unit list
       (* Name of .cma file and descriptors of the units to be linked. *)
 
-(* auxiliary function: like Pervasives.output_string, but for a bytearray. *)
-let output_bytearray oc a = output oc a 0 (Bytearray.length a)
+(* auxiliary function: like Pervasives.output_string, but for a
+   byte sequence. *) (* FIXME: redundant. remove after bootstrap *)
+let output_bytes oc a = output oc a 0 (Bytes.length a)
 
 (* Add C objects and options from a library descriptor *)
 (* Ignore them if -noautolink or -use-runtime or -use-prim was given *)
@@ -259,7 +260,7 @@ let output_debug_info oc =
   List.iter
     (fun (ofs, evl) ->
       output_binary_int oc ofs;
-      Array.iter (output_bytearray oc) evl)
+      Array.iter (output_bytes oc) evl)
     !debug_info;
   debug_info := []
 
@@ -320,7 +321,7 @@ let link_bytecode ppf tolink exec_name standalone =
       try Dll.open_dlls Dll.For_checking sharedobjs
       with Failure reason -> raise(Error(Cannot_open_dll reason))
     end;
-    let output_fun = output_bytearray outchan
+    let output_fun = output_bytes outchan
     and currpos_fun () = pos_out outchan - start_code in
     List.iter (link_file ppf output_fun currpos_fun) tolink;
     if check_dlls then Dll.close_all_dlls();
@@ -374,12 +375,12 @@ let output_code_string_counter = ref 0
 
 let output_code_string outchan code =
   let pos = ref 0 in
-  let len = Bytearray.length code in
+  let len = Bytes.length code in
   while !pos < len do
-    let c1 = Char.code(Bytearray.get code !pos) in
-    let c2 = Char.code(Bytearray.get code (!pos + 1)) in
-    let c3 = Char.code(Bytearray.get code (!pos + 2)) in
-    let c4 = Char.code(Bytearray.get code (!pos + 3)) in
+    let c1 = Char.code(Bytes.get code !pos) in
+    let c2 = Char.code(Bytes.get code (!pos + 1)) in
+    let c3 = Char.code(Bytes.get code (!pos + 2)) in
+    let c4 = Char.code(Bytes.get code (!pos + 3)) in
     pos := !pos + 4;
     Printf.fprintf outchan "0x%02x%02x%02x%02x, " c4 c3 c2 c1;
     incr output_code_string_counter;
@@ -447,7 +448,7 @@ let link_bytecode_as_c ppf tolink outfile =
     let currpos = ref 0 in
     let output_fun code =
       output_code_string outchan code;
-      currpos := !currpos + Bytearray.length code
+      currpos := !currpos + Bytes.length code
     and currpos_fun () = !currpos in
     List.iter (link_file ppf output_fun currpos_fun) tolink;
     (* The final STOP instruction *)

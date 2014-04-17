@@ -215,14 +215,14 @@ let prepostfix pre name post =
 let transl_path s =
   match Sys.os_type with
     | "Win32" ->
-        let s = Bytearray.of_string s in
+        let s = Bytes.of_string s in
         let rec aux i =
-          if i = Bytearray.length s || Bytearray.get s i = ' ' then s
+          if i = Bytes.length s || Bytes.get s i = ' ' then s
           else begin
-            if Bytearray.get s i = '/' then Bytearray.set s i '\\';
+            if Bytes.get s i = '/' then Bytes.set s i '\\';
             aux (i + 1)
           end
-        in Bytearray.to_string (aux 0)
+        in Bytes.to_string (aux 0)
     | _ -> s
 
 let build_libs () =

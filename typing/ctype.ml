@@ -2387,8 +2387,8 @@ and unify3 env t1 t1' t2 t2' =
       unify_fields env t1' t2'
   | (Tconstr (p1, [], _), Tconstr (p2, [], _))
     when !Clflags.unsafe_string
-         && (p1 = Predef.path_string || p1 = Predef.path_bytearray)
-         && (p2 = Predef.path_string || p2 = Predef.path_bytearray) ->
+         && (p1 = Predef.path_string || p1 = Predef.path_bytes)
+         && (p2 = Predef.path_string || p2 = Predef.path_bytes) ->
       ()
   | _ ->
     begin match !umode with
@@ -2930,8 +2930,8 @@ let rec moregen inst_nongen type_pairs env t1 t2 =
               moregen_list inst_nongen type_pairs env tl1 tl2
           | (Tconstr (p1, [], _), Tconstr (p2, [], _))
             when !Clflags.unsafe_string
-                 && (p1 = Predef.path_string || p1 = Predef.path_bytearray)
-                 && (p2 = Predef.path_string || p2 = Predef.path_bytearray) ->
+                 && (p1 = Predef.path_string || p1 = Predef.path_bytes)
+                 && (p2 = Predef.path_string || p2 = Predef.path_bytes) ->
               ()
           | (Tpackage (p1, n1, tl1), Tpackage (p2, n2, tl2)) ->
               begin try

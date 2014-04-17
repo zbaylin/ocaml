@@ -42,13 +42,13 @@ let input chan = really_input_string chan 16
 let char_hex n = Char.unsafe_chr (n + if n < 10 then Char.code '0' else (Char.code 'a' - 10))
 
 let to_hex d =
-  let result = Bytearray.create 32 in
+  let result = Bytes.create 32 in
   for i = 0 to 15 do
     let x = Char.code d.[i] in
-    Bytearray.unsafe_set result (i*2) (char_hex (x lsr 4));
-    Bytearray.unsafe_set result (i*2+1) (char_hex (x land 0x0f));
+    Bytes.unsafe_set result (i*2) (char_hex (x lsr 4));
+    Bytes.unsafe_set result (i*2+1) (char_hex (x land 0x0f));
   done;
-  Bytearray.unsafe_to_string result
+  Bytes.unsafe_to_string result
 
 let from_hex s =
   if String.length s <> 32 then raise (Invalid_argument "Digest.from_hex");
@@ -60,8 +60,8 @@ let from_hex s =
     | _ -> raise (Invalid_argument "Digest.from_hex")
   in
   let byte i = digit s.[i] lsl 4 + digit s.[i+1] in
-  let result = Bytearray.create 16 in
+  let result = Bytes.create 16 in
   for i = 0 to 15 do
-    Bytearray.set result i (Char.chr (byte (2 * i)));
+    Bytes.set result i (Char.chr (byte (2 * i)));
   done;
-  Bytearray.unsafe_to_string result
+  Bytes.unsafe_to_string result

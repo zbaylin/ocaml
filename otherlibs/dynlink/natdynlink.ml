@@ -15,9 +15,9 @@
 
 type handle
 
-external ndl_open: string -> bool -> handle * bytearray = "caml_natdynlink_open"
+external ndl_open: string -> bool -> handle * bytes = "caml_natdynlink_open"
 external ndl_run: handle -> string -> unit = "caml_natdynlink_run"
-external ndl_getmap: unit -> bytearray = "caml_natdynlink_getmap"
+external ndl_getmap: unit -> bytes = "caml_natdynlink_getmap"
 external ndl_globals_inited: unit -> int = "caml_natdynlink_globals_inited"
 
 type linking_error =
