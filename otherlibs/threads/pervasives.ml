@@ -27,6 +27,7 @@ let () =
   register_named_value "Pervasives.array_bound_error"
     (Invalid_argument "index out of bounds")
 
+
 external raise : exn -> 'a = "%raise"
 external raise_notrace : exn -> 'a = "%raise_notrace"
 
@@ -121,7 +122,7 @@ external asin : float -> float = "caml_asin_float" "asin" "float"
 external atan : float -> float = "caml_atan_float" "atan" "float"
 external atan2 : float -> float -> float = "caml_atan2_float" "atan2" "float"
 external hypot : float -> float -> float
-   = "caml_hypot_float" "caml_hypot" "float"
+               = "caml_hypot_float" "caml_hypot" "float"
 external cos : float -> float = "caml_cos_float" "cos" "float"
 external cosh : float -> float = "caml_cosh_float" "cosh" "float"
 external log : float -> float = "caml_log_float" "log" "float"
@@ -136,7 +137,7 @@ external ceil : float -> float = "caml_ceil_float" "ceil" "float"
 external floor : float -> float = "caml_floor_float" "floor" "float"
 external abs_float : float -> float = "%absfloat"
 external copysign : float -> float -> float
-   = "caml_copysign_float" "caml_copysign" "float"
+                  = "caml_copysign_float" "caml_copysign" "float"
 external mod_float : float -> float -> float = "caml_fmod_float" "fmod" "float"
 external frexp : float -> float * int = "caml_frexp_float"
 external ldexp : float -> int -> float = "caml_ldexp_float"
@@ -202,17 +203,17 @@ external snd : 'a * 'b -> 'b = "%field1"
 
 (* References *)
 
-type 'a ref = { mutable contents: 'a }
-external ref: 'a -> 'a ref = "%makemutable"
-external (!): 'a ref -> 'a = "%field0"
-external (:=): 'a ref -> 'a -> unit = "%setfield0"
-external incr: int ref -> unit = "%incr"
-external decr: int ref -> unit = "%decr"
+type 'a ref = { mutable contents : 'a }
+external ref : 'a -> 'a ref = "%makemutable"
+external ( ! ) : 'a ref -> 'a = "%field0"
+external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
+external incr : int ref -> unit = "%incr"
+external decr : int ref -> unit = "%decr"
 
 (* String conversion functions *)
 
-external format_int: string -> int -> string = "caml_format_int"
-external format_float: string -> float -> string = "caml_format_float"
+external format_int : string -> int -> string = "caml_format_int"
+external format_float : string -> float -> string = "caml_format_float"
 
 let string_of_bool b =
   if b then "true" else "false"
@@ -231,7 +232,7 @@ let valid_float_lexem s =
   let rec loop i =
     if i >= l then s ^ "." else
     match s.[i] with
-    | '0' .. '9' | '-' -> loop (i+1)
+    | '0' .. '9' | '-' -> loop (i + 1)
     | _ -> s
   in
   loop 0
@@ -243,7 +244,7 @@ external float_of_string : string -> float = "caml_float_of_string"
 
 (* List operations -- more in module List *)
 
-let rec (@) l1 l2 =
+let rec ( @ ) l1 l2 =
   match l1 with
     [] -> l2
   | hd :: tl -> hd :: (tl @ l2)
@@ -253,8 +254,9 @@ let rec (@) l1 l2 =
 type in_channel
 type out_channel
 
-external open_descriptor_out: int -> out_channel = "caml_ml_open_descriptor_out"
-external open_descriptor_in: int -> in_channel = "caml_ml_open_descriptor_in"
+external open_descriptor_out : int -> out_channel
+                             = "caml_ml_open_descriptor_out"
+external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"
 
 let stdin = open_descriptor_in 0
 let stdout = open_descriptor_out 1
@@ -284,7 +286,7 @@ type open_flag =
   | Open_creat | Open_trunc | Open_excl
   | Open_binary | Open_text | Open_nonblock
 
-external open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
+external open_desc : string -> open_flag list -> int -> int = "caml_sys_open"
 
 let open_out_gen mode perm name =
   open_descriptor_out(open_desc name mode perm)
@@ -428,7 +430,7 @@ let rec unsafe_really_input ic s ofs len =
     let r = unsafe_input ic s ofs len in
     if r = 0
     then raise End_of_file
-    else unsafe_really_input ic s (ofs+r) (len-r)
+    else unsafe_really_input ic s (ofs + r) (len - r)
   end
 
 let really_input ic s ofs len =

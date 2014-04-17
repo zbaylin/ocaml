@@ -237,8 +237,9 @@ let report_error ppf = function
   | Unterminated_string ->
       fprintf ppf "String literal not terminated"
   | Unterminated_string_in_comment (_, loc) ->
-      fprintf ppf "This comment contains an unterminated string literal@.%aString literal begins here"
-        Location.print_error loc
+      fprintf ppf "This comment contains an unterminated string literal@.\
+                   %aString literal begins here"
+              Location.print_error loc
   | Keyword_as_label kwd ->
       fprintf ppf "`%s' is a keyword, it cannot be used as label name" kwd
   | Literal_overflow ty ->
@@ -446,6 +447,7 @@ rule token = parse
   | "[%" { LBRACKETPERCENT }
   | "[%%" { LBRACKETPERCENTPERCENT }
   | "[@@" { LBRACKETATAT }
+  | "[@@@" { LBRACKETATATAT }
   | "!"  { BANG }
   | "!=" { INFIXOP0 "!=" }
   | "+"  { PLUS }
@@ -520,7 +522,8 @@ and comment = parse
           | loc :: _ ->
             let start = List.hd (List.rev !comment_start_loc) in
             comment_start_loc := [];
-            raise (Error (Unterminated_string_in_comment (start, str_start), loc))
+            raise (Error (Unterminated_string_in_comment (start, str_start),
+                          loc))
         end;
         is_in_string := false;
         store_string_char '|';

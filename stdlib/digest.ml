@@ -39,7 +39,8 @@ let output chan digest =
 
 let input chan = really_input_string chan 16
 
-let char_hex n = Char.unsafe_chr (n + if n < 10 then Char.code '0' else (Char.code 'a' - 10))
+let char_hex n =
+  Char.unsafe_chr (n + if n < 10 then Char.code '0' else (Char.code 'a' - 10))
 
 let to_hex d =
   let result = Bytes.create 32 in
