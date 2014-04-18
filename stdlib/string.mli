@@ -85,13 +85,10 @@ val make : int -> char -> string
 (** [String.make n c] returns a fresh string of length [n],
    filled with the character [c].
 
-   Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.*)
+   Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}. *)
 
 val copy : string -> string
-(** Return a copy of the given string.
-    @deprecated Strings are now read-only, so it doesn't make sense to
-    copy them.
-*)
+(** Return a copy of the given string. *)
 
 val sub : string -> int -> int -> string
 (** [String.sub s start len] returns a fresh string of length [len],
@@ -108,8 +105,7 @@ val fill : bytes -> int -> int -> char -> unit [@@ocaml.deprecated]
    Raise [Invalid_argument] if [start] and [len] do not
    designate a valid range of [s].
 
-   @deprecated This is a deprecated alias of {!Bytes.fill}.
-*)
+   @deprecated This is a deprecated alias of {!Bytes.fill}. *)
 
 val blit : string -> int -> bytes -> int -> int -> unit
 (** [String.blit src srcoff dst dstoff len] copies [len] bytes
@@ -133,8 +129,7 @@ val iteri : (int -> char -> unit) -> string -> unit
 (** Same as {!String.iter}, but the
    function is applied to the index of the element as first argument
    (counting from 0), and the character itself as second argument.
-   @since 4.00.0
-*)
+   @since 4.00.0 *)
 
 val map : (char -> char) -> string -> string
 (** [String.map f s] applies function [f] in turn to all
