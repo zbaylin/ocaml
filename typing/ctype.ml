@@ -3175,6 +3175,11 @@ let rec eqtype rename type_pairs subst env t1 t2 =
         end
     | (Tconstr (p1, [], _), Tconstr (p2, [], _)) when Path.same p1 p2 ->
         ()
+    | (Tconstr (p1, [], _), Tconstr (p2, [], _))
+      when !Clflags.unsafe_string
+           && (p1 = Predef.path_string || p1 = Predef.path_bytes)
+           && (p2 = Predef.path_string || p2 = Predef.path_bytes) ->
+        ()
     | _ ->
         let t1' = expand_head_rigid env t1 in
         let t2' = expand_head_rigid env t2 in
