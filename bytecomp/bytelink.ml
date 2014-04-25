@@ -35,10 +35,6 @@ type link_action =
   | Link_archive of string * compilation_unit list
       (* Name of .cma file and descriptors of the units to be linked. *)
 
-(* auxiliary function: like Pervasives.output_string, but for a
-   byte sequence. *) (* FIXME: redundant. remove after bootstrap *)
-let output_bytes oc a = output oc a 0 (Bytes.length a)
-
 (* Add C objects and options from a library descriptor *)
 (* Ignore them if -noautolink or -use-runtime or -use-prim was given *)
 

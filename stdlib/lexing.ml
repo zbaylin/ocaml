@@ -90,7 +90,7 @@ let lex_refill read_fun aux_buffer lexbuf =
         <-------|---------------------|----------->
         |  junk |      valid data     |   junk    |
         ^       ^                     ^           ^
-        0    start_pos             buffer_end    String.length buffer
+        0    start_pos             buffer_end    Bytes.length buffer
   *)
   if lexbuf.lex_buffer_len + n > Bytes.length lexbuf.lex_buffer then begin
     (* There is not enough space at the end of the buffer *)
@@ -100,8 +100,8 @@ let lex_refill read_fun aux_buffer lexbuf =
       (* But there is enough space if we reclaim the junk at the beginning
          of the buffer *)
       Bytes.blit lexbuf.lex_buffer lexbuf.lex_start_pos
-                     lexbuf.lex_buffer 0
-                     (lexbuf.lex_buffer_len - lexbuf.lex_start_pos)
+                  lexbuf.lex_buffer 0
+                  (lexbuf.lex_buffer_len - lexbuf.lex_start_pos)
     end else begin
       (* We must grow the buffer.  Doubling its size will provide enough
          space since n <= String.length aux_buffer <= String.length buffer.
@@ -113,8 +113,8 @@ let lex_refill read_fun aux_buffer lexbuf =
       let newbuf = Bytes.create newlen in
       (* Copy the valid data to the beginning of the new buffer *)
       Bytes.blit lexbuf.lex_buffer lexbuf.lex_start_pos
-                     newbuf 0
-                     (lexbuf.lex_buffer_len - lexbuf.lex_start_pos);
+                  newbuf 0
+                  (lexbuf.lex_buffer_len - lexbuf.lex_start_pos);
       lexbuf.lex_buffer <- newbuf
     end;
     (* Reallocation or not, we have shifted the data left by
@@ -163,7 +163,8 @@ let from_channel ic =
 
 let from_string s =
   { refill_buff = (fun lexbuf -> lexbuf.lex_eof_reached <- true);
-    lex_buffer = Bytes.of_string s;
+    lex_buffer = Bytes.of_string s; (* have to make a copy for compatibility
+                                       with unsafe-string mode *)
     lex_buffer_len = String.length s;
     lex_abs_pos = 0;
     lex_start_pos = 0;

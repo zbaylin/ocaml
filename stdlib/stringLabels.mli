@@ -17,20 +17,20 @@ external length : string -> int = "%string_length"
 (** Return the length (number of characters) of the given string. *)
 
 external get : string -> int -> char = "%string_safe_get"
-(** [String.get s n] returns character number [n] in string [s].
+(** [String.get s n] returns the character at index [n] in string [s].
+   You can also write [s.[n]] instead of [String.get s n].
 
-   Raise [Invalid_argument] if [n] not a valid character number in [s]. *)
-
+   Raise [Invalid_argument] if [n] not a valid index in [s]. *)
 
 external set : bytes -> int -> char -> unit = "%string_safe_set"
   [@@ocaml.deprecated]
 (** [String.set s n c] modifies byte sequence [s] in place,
    replacing the byte at index [n] with [c].
+   You can also write [s.[n] <- c] instead of [String.set s n c].
 
    Raise [Invalid_argument] if [n] is not a valid index in [s].
 
-   @deprecated This is a deprecated alias of {!Bytes.set}.
-*)
+   @deprecated This is a deprecated alias of {!Bytes.set}. *)
 
 external create : int -> bytes = "caml_create_string" [@@ocaml.deprecated]
 (** [String.create n] returns a fresh byte sequence of length [n].
@@ -38,8 +38,7 @@ external create : int -> bytes = "caml_create_string" [@@ocaml.deprecated]
 
    Raise [Invalid_argument] if [n < 0] or [n > ]{!Sys.max_string_length}.
 
-   @deprecated This is a deprecated alias of {!Bytes.create}.
-*)
+   @deprecated This is a deprecated alias of {!Bytes.create}. *)
 
 val make : int -> char -> string
 (** [String.make n c] returns a fresh string of length [n],
@@ -56,14 +55,14 @@ val sub : string -> pos:int -> len:int -> string
    has length [len].
 
    Raise [Invalid_argument] if [start] and [len] do not
-   designate a valid range of [s]. *)
+   designate a valid substring of [s]. *)
 
 val fill : bytes -> pos:int -> len:int -> char -> unit [@@ocaml.deprecated]
 (** [String.fill s start len c] modifies byte sequence [s] in place,
    replacing [len] bytes by [c], starting at [start].
 
    Raise [Invalid_argument] if [start] and [len] do not
-   designate a valid range of [s].
+   designate a valid substring of [s].
 
    @deprecated This is a deprecated alias of {!Bytes.fill}. *)
 
@@ -115,19 +114,19 @@ val escaped : string -> string
    not a copy. Its inverse function is Scanf.unescaped. *)
 
 val index : string -> char -> int
-(** [String.index s c] returns the character number of the first
+(** [String.index s c] returns the index of the first
    occurrence of character [c] in string [s].
 
    Raise [Not_found] if [c] does not occur in [s]. *)
 
 val rindex : string -> char -> int
-(** [String.rindex s c] returns the character number of the last
+(** [String.rindex s c] returns the index of the last
    occurrence of character [c] in string [s].
 
    Raise [Not_found] if [c] does not occur in [s]. *)
 
 val index_from : string -> int -> char -> int
-(** [String.index_from s i c] returns the character number of the
+(** [String.index_from s i c] returns the index of the
    first occurrence of character [c] in string [s] after position [i].
    [String.index s c] is equivalent to [String.index_from s 0 c].
 
@@ -135,7 +134,7 @@ val index_from : string -> int -> char -> int
    Raise [Not_found] if [c] does not occur in [s] after position [i]. *)
 
 val rindex_from : string -> int -> char -> int
-(** [String.rindex_from s i c] returns the character number of the
+(** [String.rindex_from s i c] returns the index of the
    last occurrence of character [c] in string [s] before position [i+1].
    [String.rindex s c] is equivalent to
    [String.rindex_from s (String.length s - 1) c].

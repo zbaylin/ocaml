@@ -45,14 +45,6 @@ let pad_to n s =
   if len < n then s ^ String.make (n - len) ' ' else s
 
 let indent nb_sp s =
-(*
-  let rec split i j l =
-    if j >= String.length s then String.sub s i (j-i) :: l
-    else if s.[j] = '\n' then split (j+1) (j+1) (String.sub i (j+1-i) :: l)
-    else split i (j+1) l
-  in
-  String.concat (String.make nb_sp ' ') (split 0 0 [""])
-*)
   let c = ref 0 in
   let len = pred (String.length s) in
   for i = 0 to len do if s.[i] = '\n' then incr c done ;

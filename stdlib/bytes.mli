@@ -13,17 +13,18 @@
 
 (** Byte sequence operations.
 
-   A byte sequence is a mutable data structure that contains a finite
-   sequence of bytes of fixed length. Each byte can be indexed in
+   A byte sequence is a mutable data structure that contains a
+   fixed-length sequence of bytes. Each byte can be indexed in
    constant time for reading or writing.
 
    Given a byte sequence [s] of length [l], we can access each of the
    [l] bytes of [s] via its index in the sequence. Indexes start at
    [0], and we will call an index valid in [s] if it falls within the
-   range [[0...l-1]]. A position is the point between two bytes or at
-   the beginning or end of the sequence.  We call a position valid in
-   [s] if it falls within the range [[0...l]]. Note that the byte at
-   index [n] is between positions [n] and [n+1].
+   range [[0...l-1]] (inclusive). A position is the point between two
+   bytes or at the beginning or end of the sequence.  We call a
+   position valid in [s] if it falls within the range [[0...l]]
+   (inclusive). Note that the byte at index [n] is between positions
+   [n] and [n+1].
 
    Two parameters [start] and [len] are said to designate a valid
    range of [s] if [len >= 0] and [start] and [start+len] are valid

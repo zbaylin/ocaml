@@ -37,9 +37,9 @@ let iter = (Obj.magic B.iter : (char -> unit) -> string -> unit)
 let iteri = (Obj.magic B.iteri : (int -> char -> unit) -> string -> unit)
 let map = (Obj.magic B.map : (char -> char) -> string -> string)
 
-(* Beware: we cannot use B.trim or B.escape because they always make a copy,
-   but our specification spells out some cases where we are not allowed to
-   make a copy. *)
+(* Beware: we cannot use B.trim or B.escape because they always make a
+   copy, but String.mli spells out some cases where we are not allowed
+   to make a copy. *)
 
 external is_printable: char -> bool = "caml_is_printable"
 

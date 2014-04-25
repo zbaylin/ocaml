@@ -48,8 +48,7 @@ val timed_write : Unix.file_descr -> bytes -> int -> int -> float -> int
    The delay [d] is given in the fifth argument, in seconds. *)
 
 val timed_write_substring :
-      Unix.file_descr ->
-      string -> int -> int -> float -> int
+      Unix.file_descr -> string -> int -> int -> float -> int
 (** See {!ThreadUnix.timed_write}. *)
 
 (** {6 Polling} *)

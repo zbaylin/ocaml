@@ -92,8 +92,8 @@ let reset_string_buffer () =
 let store_string_char c =
   if !string_index >= Bytes.length (!string_buff) then begin
     let new_buff = Bytes.create (Bytes.length (!string_buff) * 2) in
-      Bytes.blit (!string_buff) 0 new_buff 0 (Bytes.length (!string_buff));
-      string_buff := new_buff
+    Bytes.blit (!string_buff) 0 new_buff 0 (Bytes.length (!string_buff));
+    string_buff := new_buff
   end;
   Bytes.unsafe_set (!string_buff) (!string_index) c;
   incr string_index

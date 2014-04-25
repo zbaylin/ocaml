@@ -181,14 +181,14 @@ let cvt_nativeint_literal s =
 
 let remove_underscores s =
   let l = String.length s in
-  let a = Bytes.create l in
+  let b = Bytes.create l in
   let rec remove src dst =
     if src >= l then
-      if dst >= l then s else Bytes.sub_string a 0 dst
+      if dst >= l then s else Bytes.sub_string b 0 dst
     else
       match s.[src] with
         '_' -> remove (src + 1) dst
-      |  c  -> Bytes.set a dst c; remove (src + 1) (dst + 1)
+      |  c  -> Bytes.set b dst c; remove (src + 1) (dst + 1)
   in remove 0 0
 
 (* recover the name from a LABEL or OPTLABEL token *)

@@ -282,16 +282,12 @@ let raw_string_of_digit nat off =
        and s1 = string_of_int (nth_digit_nat a_1 0) in
        let len = String.length s1 in
        if leading_digits < 10 then begin
-            let result =
-              Bytes.make (max_superscript_10_power_in_int+1) '0'
-            in
+            let result = Bytes.make (max_superscript_10_power_in_int+1) '0' in
             Bytes.set result 0 (Char.chr (48 + leading_digits));
             String.blit s1 0 result (Bytes.length result - len) len;
             Bytes.to_string result
        end else begin
-            let result =
-              Bytes.make (max_superscript_10_power_in_int+2) '0'
-            in
+            let result = Bytes.make (max_superscript_10_power_in_int+2) '0' in
             String.blit (string_of_int leading_digits) 0 result 0 2;
             String.blit s1 0 result (Bytes.length result - len) len;
             Bytes.to_string result

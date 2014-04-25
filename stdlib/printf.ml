@@ -143,8 +143,7 @@ let extract_format fmt start stop widths =
         assert false (* Should not happen since this is ill-typed. *)
       | (c, _) ->
         Buffer.add_char b c;
-        fill_format (succ i) widths
-  in
+        fill_format (succ i) widths in
   fill_format start (List.rev widths);
   Buffer.contents b
 ;;

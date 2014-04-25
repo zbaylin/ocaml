@@ -23,6 +23,7 @@ let () =
   register_named_value "Pervasives.array_bound_error"
     (Invalid_argument "index out of bounds")
 
+
 external raise : exn -> 'a = "%raise"
 external raise_notrace : exn -> 'a = "%raise_notrace"
 
@@ -82,7 +83,7 @@ external succ : int -> int = "%succint"
 external pred : int -> int = "%predint"
 external ( + ) : int -> int -> int = "%addint"
 external ( - ) : int -> int -> int = "%subint"
-external ( * ) : int -> int -> int = "%mulint"
+external ( *  ) : int -> int -> int = "%mulint"
 external ( / ) : int -> int -> int = "%divint"
 external ( mod ) : int -> int -> int = "%modint"
 
@@ -163,7 +164,7 @@ type fpclass =
   | FP_nan
 external classify_float : float -> fpclass = "caml_classify_float"
 
-(* String and bytes operations -- more in modules String and Bytes *)
+(* String and byte sequence operations -- more in modules String and Bytes *)
 
 external string_length : string -> int = "%string_length"
 external bytes_length : bytes -> int = "%string_length"

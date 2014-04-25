@@ -244,7 +244,7 @@ let mk_S f =
 ;;
 
 let mk_safe_string f =
-  "-safe-string", Arg.Unit f, " Make string constants immutable"
+  "-safe-string", Arg.Unit f, " Make strings immutable"
 ;;
 
 let mk_shared f =
@@ -279,7 +279,7 @@ let mk_unsafe f =
 ;;
 
 let mk_unsafe_string f =
-  "-unsafe-string", Arg.Unit f, " Make string constants mutable (deprecated)"
+  "-unsafe-string", Arg.Unit f, " Make strings mutable (default)"
 ;;
 
 let mk_use_runtime f =

@@ -232,12 +232,11 @@ module LongString = struct
     Sys.max_string_length * (tbl_size - 1) + Bytes.length tbl.(tbl_size - 1)
 
   let get tbl ind =
-    Bytes.get tbl.(ind / Sys.max_string_length)
-                  (ind mod Sys.max_string_length)
+    Bytes.get tbl.(ind / Sys.max_string_length) (ind mod Sys.max_string_length)
 
   let set tbl ind c =
-    Bytes.set tbl.(ind / Sys.max_string_length)
-                  (ind mod Sys.max_string_length) c
+    Bytes.set tbl.(ind / Sys.max_string_length) (ind mod Sys.max_string_length)
+              c
 
   let blit src srcoff dst dstoff len =
     for i = 0 to len - 1 do

@@ -35,8 +35,8 @@ module Charset =
     let add s c =
       let i = Char.code c in
       Bytes.set s (i lsr 3)
-                    (Char.chr (Char.code (Bytes.get s (i lsr 3))
-                               lor (1 lsl (i land 7))))
+                (Char.chr (Char.code (Bytes.get s (i lsr 3))
+                           lor (1 lsl (i land 7))))
 
     let add_range s c1 c2 =
       for i = Char.code c1 to Char.code c2 do add s (Char.chr i) done
@@ -58,7 +58,7 @@ module Charset =
       let r = Bytes.create 32 in
       for i = 0 to 31 do
         Bytes.set r i (Char.chr(Char.code (Bytes.get s1 i)
-                           lor Char.code (Bytes.get s2 i)))
+                       lor Char.code (Bytes.get s2 i)))
       done;
       r
 
