@@ -122,7 +122,7 @@ and ident_nil = ident_create "[]"
 and ident_cons = ident_create "::"
 and ident_none = ident_create "None"
 and ident_some = ident_create "Some"
-let build_initial_env add_type add_exception empty_env =
+let common_initial_env add_type add_exception empty_env =
   let decl_bool =
     {decl_abstr with
      type_kind = Type_variant([cstr ident_false []; cstr ident_true []])}
@@ -186,7 +186,6 @@ let build_initial_env add_type add_exception empty_env =
                          [newgenty (Ttuple[type_string; type_int; type_int])] (
   add_exception ident_undefined_recursive_module
                          [newgenty (Ttuple[type_string; type_int; type_int])] (
-  add_type ident_bytes decl_abstr (
   add_type ident_int64 decl_abstr (
   add_type ident_int32 decl_abstr (
   add_type ident_nativeint decl_abstr (
@@ -202,7 +201,14 @@ let build_initial_env add_type add_exception empty_env =
   add_type ident_string decl_abstr (
   add_type ident_char decl_abstr (
   add_type ident_int decl_abstr (
-    empty_env))))))))))))))))))))))))))))
+    empty_env)))))))))))))))))))))))))))
+
+let build_initial_env add_type add_exception empty_env =
+  let common = common_initial_env add_type add_exception empty_env in
+  let safe_string = add_type ident_bytes decl_abstr common in
+  let decl_bytes_unsafe = {decl_abstr with type_manifest = Some type_string} in
+  let unsafe_string = add_type ident_bytes decl_bytes_unsafe common in
+  (safe_string, unsafe_string)
 
 let builtin_values =
   List.map (fun id -> Ident.make_global id; (Ident.name id, id))
