@@ -7,6 +7,11 @@ Language features:
 - Attributes and extension nodes
 - Generative functors
 - Module aliases
+- Read-only strings: split the "string" type into two types, "string" and
+  "bytes". Same for the stdlib modules "String" and "Bytes". "string" is
+  now read-only and "bytes" is read-write. A compatibility mode (enabled
+  by default) identifies the two types so old programs still work as
+  before. The new mode is enabled with command-line option "-safe-string".
 
 Build system for the OCaml distribution:
 - Use -bin-annot when building.
@@ -66,6 +71,7 @@ Runtime system:
   64-bit integer type.
 
 Standard library:
+* Added a new module: Bytes.
 - PR#4986: add List.sort_uniq and Set.of_list
 - PR#5935: a faster version of "raise" which does not maintain the backtrace
 - PR#6146: support "Unix.kill pid Sys.sigkill" under Windows
