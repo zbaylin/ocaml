@@ -162,7 +162,8 @@ let main () =
       Compmisc.init_path false;
       let extracted_output = extract_output !output_name in
       let revd = get_objfiles () in
-      Bytepackager.package_files ppf revd (extracted_output);
+      Bytepackager.package_files ppf (Compmisc.initial_env ())
+        revd (extracted_output);
       Warnings.check_fatal ();
     end
     else if not !compile_only && !objfiles <> [] then begin

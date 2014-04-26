@@ -401,9 +401,9 @@ let _ = Env.check_modtype_inclusion := check_modtype_inclusion
 (* Check that an implementation of a compilation unit meets its
    interface. *)
 
-let compunit impl_name impl_sig intf_name intf_sig =
+let compunit env impl_name impl_sig intf_name intf_sig =
   try
-    signatures Env.initial [] Subst.identity impl_sig intf_sig
+    signatures env [] Subst.identity impl_sig intf_sig
   with Error reasons ->
     raise(Error(([], Env.empty,Interface_mismatch(impl_name, intf_name))
                 :: reasons))

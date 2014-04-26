@@ -174,7 +174,8 @@ let main () =
     else if !make_package then begin
       Compmisc.init_path true;
       let target = extract_output !output_name in
-      Asmpackager.package_files ppf (get_objfiles ()) target;
+      Asmpackager.package_files ppf (Compmisc.initial_env ())
+        (get_objfiles ()) target;
       Warnings.check_fatal ();
     end
     else if !shared then begin

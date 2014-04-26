@@ -250,7 +250,7 @@ let package_object_files ppf files targetfile targetname coercion =
 
 (* The entry point *)
 
-let package_files ppf files targetfile =
+let package_files ppf initial_env files targetfile =
     let files =
     List.map
         (fun f ->
@@ -261,11 +261,12 @@ let package_files ppf files targetfile =
     let targetcmi = prefix ^ ".cmi" in
     let targetname = String.capitalize(Filename.basename prefix) in
     try
-      let coercion = Typemod.package_units files targetcmi targetname in
-    let ret = package_object_files ppf files targetfile targetname coercion in
-    ret
-  with x ->
-    remove_file targetfile; raise x
+      let coercion =
+        Typemod.package_units initial_env files targetcmi targetname in
+      let ret = package_object_files ppf files targetfile targetname coercion in
+      ret
+    with x ->
+      remove_file targetfile; raise x
 
 (* Error report *)
 
