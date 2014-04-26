@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Format
 open Asttypes
 open Primitive
@@ -22,7 +20,7 @@ open Lambda
 let rec struct_const ppf = function
   | Const_base(Const_int n) -> fprintf ppf "%i" n
   | Const_base(Const_char c) -> fprintf ppf "%C" c
-  | Const_base(Const_string s) -> fprintf ppf "%S" s
+  | Const_base(Const_string (s, _)) -> fprintf ppf "%S" s
   | Const_immstring s -> fprintf ppf "#%S" s
   | Const_base(Const_float f) -> fprintf ppf "%s" f
   | Const_base(Const_int32 n) -> fprintf ppf "%lil" n
@@ -89,9 +87,19 @@ let record_rep ppf r =
   | Record_float -> fprintf ppf "float"
 ;;
 
+let string_of_loc_kind = function
+  | Loc_FILE -> "loc_FILE"
+  | Loc_LINE -> "loc_LINE"
+  | Loc_MODULE -> "loc_MODULE"
+  | Loc_POS -> "loc_POS"
+  | Loc_LOC -> "loc_LOC"
+
 let primitive ppf = function
   | Pidentity -> fprintf ppf "id"
   | Pignore -> fprintf ppf "ignore"
+  | Prevapply _ -> fprintf ppf "revapply"
+  | Pdirapply _ -> fprintf ppf "dirapply"
+  | Ploc kind -> fprintf ppf "%s" (string_of_loc_kind kind)
   | Pgetglobal id -> fprintf ppf "global %a" Ident.print id
   | Psetglobal id -> fprintf ppf "setglobal %a" Ident.print id
   | Pmakeblock(tag, Immutable) -> fprintf ppf "makeblock %i" tag
@@ -105,7 +113,7 @@ let primitive ppf = function
   | Pduprecord (rep, size) -> fprintf ppf "duprecord %a %i" record_rep rep size
   | Plazyforce -> fprintf ppf "force"
   | Pccall p -> fprintf ppf "%s" p.prim_name
-  | Praise -> fprintf ppf "raise"
+  | Praise k -> fprintf ppf "%s" (Lambda.raise_kind k)
   | Psequand -> fprintf ppf "&&"
   | Psequor -> fprintf ppf "||"
   | Pnot -> fprintf ppf "not"
@@ -154,6 +162,14 @@ let primitive ppf = function
   | Parraysetu _ -> fprintf ppf "array.unsafe_set"
   | Parrayrefs _ -> fprintf ppf "array.get"
   | Parraysets _ -> fprintf ppf "array.set"
+  | Pctconst c ->
+     let const_name = match c with
+       | Big_endian -> "big_endian"
+       | Word_size -> "word_size"
+       | Ostype_unix -> "ostype_unix"
+       | Ostype_win32 -> "ostype_win32"
+       | Ostype_cygwin -> "ostype_cygwin" in
+     fprintf ppf "sys.constant_%s" const_name
   | Pisint -> fprintf ppf "isint"
   | Pisout -> fprintf ppf "isout"
   | Pbittest -> fprintf ppf "testbit"
@@ -182,6 +198,45 @@ let primitive ppf = function
       print_bigarray "get" unsafe kind ppf layout
   | Pbigarrayset(unsafe, n, kind, layout) ->
       print_bigarray "set" unsafe kind ppf layout
+  | Pbigarraydim(n) -> fprintf ppf "Bigarray.dim_%i" n
+  | Pstring_load_16(unsafe) ->
+     if unsafe then fprintf ppf "string.unsafe_get16"
+     else fprintf ppf "string.get16"
+  | Pstring_load_32(unsafe) ->
+     if unsafe then fprintf ppf "string.unsafe_get32"
+     else fprintf ppf "string.get32"
+  | Pstring_load_64(unsafe) ->
+     if unsafe then fprintf ppf "string.unsafe_get64"
+     else fprintf ppf "string.get64"
+  | Pstring_set_16(unsafe) ->
+     if unsafe then fprintf ppf "string.unsafe_set16"
+     else fprintf ppf "string.set16"
+  | Pstring_set_32(unsafe) ->
+     if unsafe then fprintf ppf "string.unsafe_set32"
+     else fprintf ppf "string.set32"
+  | Pstring_set_64(unsafe) ->
+     if unsafe then fprintf ppf "string.unsafe_set64"
+     else fprintf ppf "string.set64"
+  | Pbigstring_load_16(unsafe) ->
+     if unsafe then fprintf ppf "bigarray.array1.unsafe_get16"
+     else fprintf ppf "bigarray.array1.get16"
+  | Pbigstring_load_32(unsafe) ->
+     if unsafe then fprintf ppf "bigarray.array1.unsafe_get32"
+     else fprintf ppf "bigarray.array1.get32"
+  | Pbigstring_load_64(unsafe) ->
+     if unsafe then fprintf ppf "bigarray.array1.unsafe_get64"
+     else fprintf ppf "bigarray.array1.get64"
+  | Pbigstring_set_16(unsafe) ->
+     if unsafe then fprintf ppf "bigarray.array1.unsafe_set16"
+     else fprintf ppf "bigarray.array1.set16"
+  | Pbigstring_set_32(unsafe) ->
+     if unsafe then fprintf ppf "bigarray.array1.unsafe_set32"
+     else fprintf ppf "bigarray.array1.set32"
+  | Pbigstring_set_64(unsafe) ->
+     if unsafe then fprintf ppf "bigarray.array1.unsafe_set64"
+     else fprintf ppf "bigarray.array1.set64"
+  | Pbswap16 -> fprintf ppf "bswap16"
+  | Pbbswap(bi) -> print_boxed_integer "bswap" ppf bi
 
 let rec lam ppf = function
   | Lvar id ->
@@ -208,12 +263,15 @@ let rec lam ppf = function
             fprintf ppf ")" in
       fprintf ppf "@[<2>(function%a@ %a)@]" pr_params params lam body
   | Llet(str, id, arg, body) ->
+      let kind = function
+        Alias -> "a" | Strict -> "" | StrictOpt -> "o" | Variable -> "v" in
       let rec letbody = function
         | Llet(str, id, arg, body) ->
-            fprintf ppf "@ @[<2>%a@ %a@]" Ident.print id lam arg;
+            fprintf ppf "@ @[<2>%a =%s@ %a@]" Ident.print id (kind str) lam arg;
             letbody body
         | expr -> expr in
-      fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a@ %a@]" Ident.print id lam arg;
+      fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a =%s@ %a@]"
+        Ident.print id (kind str) lam arg;
       let expr = letbody body in
       fprintf ppf ")@]@ %a)@]" lam expr
   | Lletrec(id_arg_list, body) ->
@@ -249,11 +307,26 @@ let rec lam ppf = function
             if !spc then fprintf ppf "@ " else spc := true;
             fprintf ppf "@[<hv 1>default:@ %a@]" lam l
         end in
-
       fprintf ppf
        "@[<1>(%s %a@ @[<v 0>%a@])@]"
        (match sw.sw_failaction with None -> "switch*" | _ -> "switch")
        lam larg switch sw
+  | Lstringswitch(arg, cases, default) ->
+      let switch ppf cases =
+        let spc = ref false in
+        List.iter
+         (fun (s, l) ->
+           if !spc then fprintf ppf "@ " else spc := true;
+           fprintf ppf "@[<hv 1>case \"%s\":@ %a@]" (String.escaped s) lam l)
+          cases;
+        begin match default with
+        | Some default ->
+            if !spc then fprintf ppf "@ " else spc := true;
+            fprintf ppf "@[<hv 1>default:@ %a@]" lam default
+        | None -> ()
+        end in
+      fprintf ppf
+       "@[<1>(stringswitch %a@ @[<v 0>%a@])@]" lam arg switch cases
   | Lstaticraise (i, ls)  ->
       let lams ppf largs =
         List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
@@ -297,7 +370,10 @@ let rec lam ppf = function
        | Lev_before -> "before"
        | Lev_after _  -> "after"
        | Lev_function -> "funct-body" in
-      fprintf ppf "@[<2>(%s %i-%i@ %a)@]" kind
+      fprintf ppf "@[<2>(%s %s(%i)%s:%i-%i@ %a)@]" kind
+              ev.lev_loc.Location.loc_start.Lexing.pos_fname
+              ev.lev_loc.Location.loc_start.Lexing.pos_lnum
+              (if ev.lev_loc.Location.loc_ghost then "<ghost>" else "")
               ev.lev_loc.Location.loc_start.Lexing.pos_cnum
               ev.lev_loc.Location.loc_end.Lexing.pos_cnum
               lam expr

@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (** Interface to the Unix system *)
 
 
@@ -122,7 +120,7 @@ val environment : unit -> string array
 val getenv : string -> string
 (** Return the value associated to a variable in the process
    environment. Raise [Not_found] if the variable is unbound.
-   (This function is identical to [Sys.getenv].) *)
+   (This function is identical to {!Sys.getenv}.) *)
 
 val putenv : string -> string -> unit
 (** [Unix.putenv name value] sets the value associated to a
@@ -189,7 +187,8 @@ val waitpid : wait_flag list -> int -> int * process_status
    as the current process.
    Negative pid arguments represent process groups.
    The list of options indicates whether [waitpid] should return
-   immediately without waiting, or also report stopped children. *)
+   immediately without waiting, and whether it should report stopped
+   children. *)
 
 val system : string -> process_status
 (** Execute the given command, wait until it terminates, and return
@@ -235,10 +234,16 @@ type open_flag =
   | O_TRUNC                     (** Truncate to 0 length if existing *)
   | O_EXCL                      (** Fail if existing *)
   | O_NOCTTY                    (** Don't make this dev a controlling tty *)
-  | O_DSYNC                     (** Writes complete as `Synchronised I/O data integrity completion' *)
-  | O_SYNC                      (** Writes complete as `Synchronised I/O file integrity completion' *)
-  | O_RSYNC                     (** Reads complete as writes (depending on O_SYNC/O_DSYNC) *)
-  | O_SHARE_DELETE              (** Windows only: allow the file to be deleted while still open *)
+  | O_DSYNC                     (** Writes complete as `Synchronised I/O data
+                                   integrity completion' *)
+  | O_SYNC                      (** Writes complete as `Synchronised I/O file
+                                   integrity completion' *)
+  | O_RSYNC                     (** Reads complete as writes (depending on
+                                   O_SYNC/O_DSYNC) *)
+  | O_SHARE_DELETE              (** Windows only: allow the file to be deleted
+                                   while still open *)
+  | O_CLOEXEC                   (** Set the close-on-exec flag on the
+                                   descriptor returned by {!openfile} *)
 (** The flags to {!Unix.openfile}. *)
 
 
@@ -247,9 +252,9 @@ type file_perm = int
     read for group, none for others *)
 
 val openfile : string -> open_flag list -> file_perm -> file_descr
-(** Open the named file with the given flags. Third argument is
-   the permissions to give to the file if it is created. Return
-   a file descriptor on the named file. *)
+(** Open the named file with the given flags. Third argument is the
+   permissions to give to the file if it is created (see
+   {!umask}). Return a file descriptor on the named file. *)
 
 val close : file_descr -> unit
 (** Close a file descriptor. *)
@@ -303,7 +308,8 @@ type seek_command =
 
 
 val lseek : file_descr -> int -> seek_command -> int
-(** Set the current position for a file descriptor *)
+(** Set the current position for a file descriptor, and return the resulting
+    offset (from the beginning of the file). *)
 
 val truncate : string -> int -> unit
 (** Truncates the named file to the given size. *)
@@ -476,7 +482,7 @@ val clear_close_on_exec : file_descr -> unit
 
 
 val mkdir : string -> file_perm -> unit
-(** Create a directory with the given permissions. *)
+(** Create a directory with the given permissions (see {!umask}). *)
 
 val rmdir : string -> unit
 (** Remove an empty directory. *)
@@ -517,7 +523,7 @@ val pipe : unit -> file_descr * file_descr
    opened for writing, that's the entrance to the pipe. *)
 
 val mkfifo : string -> file_perm -> unit
-(** Create a named pipe with the given permissions. *)
+(** Create a named pipe with the given permissions (see {!umask}). *)
 
 
 (** {6 High-level process and redirection management} *)
@@ -670,7 +676,8 @@ val lockf : file_descr -> lock_command -> int -> unit
 
 val kill : int -> int -> unit
 (** [kill pid sig] sends signal number [sig] to the process
-   with id [pid]. *)
+   with id [pid]. Under Windows, only the [Sys.sigkill] signal
+   is emulated. *)
 
 type sigprocmask_command =
     SIG_SETMASK
@@ -766,9 +773,11 @@ val utimes : string -> float -> float -> unit
 
 type interval_timer =
     ITIMER_REAL
-      (** decrements in real time, and sends the signal [SIGALRM] when expired.*)
+      (** decrements in real time, and sends the signal [SIGALRM] when
+         expired.*)
   | ITIMER_VIRTUAL
-      (**  decrements in process virtual time, and sends [SIGVTALRM] when expired. *)
+      (** decrements in process virtual time, and sends [SIGVTALRM]
+          when expired. *)
   | ITIMER_PROF
       (** (for profiling) decrements both when the process
          is running and when the system is running on behalf of the
@@ -790,8 +799,8 @@ val setitimer :
    its previous status. The [s] argument is interpreted as follows:
    [s.it_value], if nonzero, is the time to the next timer expiration;
    [s.it_interval], if nonzero, specifies a value to
-   be used in reloading it_value when the timer expires.
-   Setting [s.it_value] to zero disable the timer.
+   be used in reloading [it_value] when the timer expires.
+   Setting [s.it_value] to zero disables the timer.
    Setting [s.it_interval] to zero causes the timer to be disabled
    after its next expiration. *)
 
@@ -1023,8 +1032,9 @@ type socket_int_option =
   | SO_RCVBUF      (** Size of received buffer *)
   | SO_ERROR       (** Deprecated.  Use {!Unix.getsockopt_error} instead. *)
   | SO_TYPE        (** Report the socket type *)
-  | SO_RCVLOWAT    (** Minimum number of bytes to process for input operations *)
-  | SO_SNDLOWAT    (** Minimum number of bytes to process for output operations *)
+  | SO_RCVLOWAT    (** Minimum number of bytes to process for input operations*)
+  | SO_SNDLOWAT    (** Minimum number of bytes to process for output
+                       operations *)
 (** The socket options that can be consulted with {!Unix.getsockopt_int}
    and modified with {!Unix.setsockopt_int}.  These options have an
    integer value. *)
@@ -1059,17 +1069,21 @@ val setsockopt_int : file_descr -> socket_int_option -> int -> unit
 (** Same as {!Unix.setsockopt} for an integer-valued socket option. *)
 
 val getsockopt_optint : file_descr -> socket_optint_option -> int option
-(** Same as {!Unix.getsockopt} for a socket option whose value is an [int option]. *)
+(** Same as {!Unix.getsockopt} for a socket option whose value is an
+   [int option]. *)
 
 val setsockopt_optint :
       file_descr -> socket_optint_option -> int option -> unit
-(** Same as {!Unix.setsockopt} for a socket option whose value is an [int option]. *)
+(** Same as {!Unix.setsockopt} for a socket option whose value is an
+   [int option]. *)
 
 val getsockopt_float : file_descr -> socket_float_option -> float
-(** Same as {!Unix.getsockopt} for a socket option whose value is a floating-point number. *)
+(** Same as {!Unix.getsockopt} for a socket option whose value is a
+   floating-point number. *)
 
 val setsockopt_float : file_descr -> socket_float_option -> float -> unit
-(** Same as {!Unix.setsockopt} for a socket option whose value is a floating-point number. *)
+(** Same as {!Unix.setsockopt} for a socket option whose value is a
+   floating-point number. *)
 
 val getsockopt_error : file_descr -> error option
 (** Return the error condition associated with the given socket,
@@ -1087,7 +1101,9 @@ val open_connection : sockaddr -> in_channel * out_channel
 val shutdown_connection : in_channel -> unit
 (** ``Shut down'' a connection established with {!Unix.open_connection};
    that is, transmit an end-of-file condition to the server reading
-   on the other side of the connection. *)
+   on the other side of the connection. This does not fully close the
+   file descriptor associated with the channel, which you must remember
+   to free via {!Pervasives.close_in}. *)
 
 val establish_server : (in_channel -> out_channel -> unit) -> sockaddr -> unit
 (** Establish a server on the given address.

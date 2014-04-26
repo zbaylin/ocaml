@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Compiling C files and building C libraries *)
 
 let command cmdline =
@@ -60,7 +58,7 @@ let compile_file name =
             if !Clflags.native_code
             then Config.native_c_compiler
             else Config.bytecomp_c_compiler)
-       (String.concat " " (List.rev !Clflags.ccopts))
+       (String.concat " " (List.rev !Clflags.all_ccopts))
        (quote_prefixed "-I" (List.rev !Clflags.include_dirs))
        (Clflags.std_include_flag "-I")
        (Filename.quote name))
@@ -73,9 +71,10 @@ let create_archive archive file_list =
       command(Printf.sprintf "link /lib /nologo /out:%s %s"
                              quoted_archive (quote_files file_list))
   | _ ->
+      assert(String.length Config.ar > 0);
       let r1 =
-        command(Printf.sprintf "ar rc %s %s"
-                quoted_archive (quote_files file_list)) in
+        command(Printf.sprintf "%s rc %s %s"
+                Config.ar quoted_archive (quote_files file_list)) in
       if r1 <> 0 || String.length Config.ranlib = 0
       then r1
       else command(Config.ranlib ^ " " ^ quoted_archive)
@@ -120,7 +119,7 @@ let call_linker mode output_name files extra =
         (if !Clflags.gprofile then Config.cc_profile else "")
         ""  (*(Clflags.std_include_flag "-I")*)
         (quote_prefixed "-L" !Config.load_path)
-        (String.concat " " (List.rev !Clflags.ccopts))
+        (String.concat " " (List.rev !Clflags.all_ccopts))
         files
         extra
   in

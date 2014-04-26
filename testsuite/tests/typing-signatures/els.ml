@@ -45,12 +45,12 @@ module type INTERP = sig
   include EVALUATOR
   module Parser : PARSER with type chunk = Ast.chunk
   val dostring : state -> string -> value list
-  val mk	: unit -> state
+  val mk : unit -> state
 end;;
 
 module type USERTYPE = sig
   type t
-  val eq	: t -> t -> bool
+  val eq : t -> t -> bool
   val to_string : t -> string
 end;;
 
@@ -90,3 +90,6 @@ module type WEAPON_LIB = sig
   module Make :
     functor (TV : TYPEVIEW with type t = t) -> USERCODE(TV).F
 end;;
+
+module type X = functor (X: CORE) -> BARECODE;;
+module type X = functor (_: CORE) -> BARECODE;;

@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Trace the instructions executed */
 
 #ifdef DEBUG
@@ -86,7 +84,7 @@ char * caml_instr_string (code_t pc)
   char *nam;
 
   nam = (instr < 0 || instr > STOP)
-    ? (sprintf (nambuf, "???%d", instr), nambuf)
+    ? (snprintf (nambuf, sizeof(nambuf), "???%d", instr), nambuf)
     : names_of_instructions[instr];
   pc++;
   switch (instr) {
@@ -127,7 +125,7 @@ char * caml_instr_string (code_t pc)
   case OFFSETREF:
   case OFFSETCLOSURE:
   case PUSHOFFSETCLOSURE:
-    sprintf(buf, "%s %d", nam, pc[0]);
+    snprintf(buf, sizeof(buf), "%s %d", nam, pc[0]);
     break;
     /* Instructions with two operands */
   case APPTERM:
@@ -144,16 +142,16 @@ char * caml_instr_string (code_t pc)
   case BGEINT:
   case BULTINT:
   case BUGEINT:
-    sprintf(buf, "%s %d, %d", nam, pc[0], pc[1]);
+    snprintf(buf, sizeof(buf), "%s %d, %d", nam, pc[0], pc[1]);
     break;
   case SWITCH:
-    sprintf(buf, "SWITCH sz%#lx=%ld::ntag%ld nint%ld",
+    snprintf(buf, sizeof(buf), "SWITCH sz%#lx=%ld::ntag%ld nint%ld",
             (long) pc[0], (long) pc[0], (unsigned long) pc[0] >> 16,
             (unsigned long) pc[0] & 0xffff);
     break;
     /* Instructions with a C primitive as operand */
   case C_CALLN:
-    sprintf(buf, "%s %d,", nam, pc[0]);
+    snprintf(buf, sizeof(buf), "%s %d,", nam, pc[0]);
     pc++;
     /* fallthrough */
   case C_CALL1:
@@ -162,12 +160,13 @@ char * caml_instr_string (code_t pc)
   case C_CALL4:
   case C_CALL5:
     if (pc[0] < 0 || pc[0] >= caml_prim_name_table.size)
-      sprintf(buf, "%s unknown primitive %d", nam, pc[0]);
+      snprintf(buf, sizeof(buf), "%s unknown primitive %d", nam, pc[0]);
     else
-      sprintf(buf, "%s %s", nam, (char *) caml_prim_name_table.contents[pc[0]]);
+      snprintf(buf, sizeof(buf), "%s %s",
+               nam, (char *) caml_prim_name_table.contents[pc[0]]);
     break;
   default:
-    sprintf(buf, "%s", nam);
+    snprintf(buf, sizeof(buf), "%s", nam);
     break;
   };
   return buf;
@@ -184,19 +183,19 @@ caml_trace_value_file (value v, code_t prog, int proglen, FILE * f)
   if (prog && v % sizeof (int) == 0
            && (code_t) v >= prog
            && (code_t) v < (code_t) ((char *) prog + proglen))
-    fprintf (f, "=code@%d", (code_t) v - prog);
+    fprintf (f, "=code@%ld", (code_t) v - prog);
   else if (Is_long (v))
     fprintf (f, "=long%" ARCH_INTNAT_PRINTF_FORMAT "d", Long_val (v));
   else if ((void*)v >= (void*)caml_stack_low
            && (void*)v < (void*)caml_stack_high)
-    fprintf (f, "=stack_%d", (intnat*)caml_stack_high - (intnat*)v);
+    fprintf (f, "=stack_%ld", (intnat*)caml_stack_high - (intnat*)v);
   else if (Is_block (v)) {
     int s = Wosize_val (v);
     int tg = Tag_val (v);
     int l = 0;
     switch (tg) {
     case Closure_tag:
-      fprintf (f, "=closure[s%d,cod%d]", s, (code_t) (Code_val (v)) - prog);
+      fprintf (f, "=closure[s%d,cod%ld]", s, (code_t) (Code_val (v)) - prog);
       goto displayfields;
     case String_tag:
       l = caml_string_length (v);
@@ -251,11 +250,11 @@ caml_trace_accu_sp_file (value accu, value * sp, code_t prog, int proglen,
   value *p;
   fprintf (f, "accu=");
   caml_trace_value_file (accu, prog, proglen, f);
-  fprintf (f, "\n sp=%#" ARCH_INTNAT_PRINTF_FORMAT "x @%d:",
+  fprintf (f, "\n sp=%#" ARCH_INTNAT_PRINTF_FORMAT "x @%ld:",
            (intnat) sp, caml_stack_high - sp);
   for (p = sp, i = 0; i < 12 + (1 << caml_trace_flag) && p < caml_stack_high;
        p++, i++) {
-    fprintf (f, "\n[%d] ", caml_stack_high - p);
+    fprintf (f, "\n[%ld] ", caml_stack_high - p);
     caml_trace_value_file (*p, prog, proglen, f);
   };
   putc ('\n', f);

@@ -11,15 +11,21 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 #include <mlvalues.h>
+#include <memory.h>
+#include <signals.h>
 #include "unixsupport.h"
 
 CAMLprim value unix_chroot(value path)
 {
+  CAMLparam1(path);
+  char * p;
   int ret;
-  ret = chroot(String_val(path));
+  p = caml_strdup(String_val(path));
+  caml_enter_blocking_section();
+  ret = chroot(p);
+  caml_leave_blocking_section();
+  caml_stat_free(p);
   if (ret == -1) uerror("chroot", path);
-  return Val_unit;
+  CAMLreturn(Val_unit);
 }

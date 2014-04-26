@@ -10,8 +10,6 @@
 .\"*                                                                     *
 .\"***********************************************************************
 .\"
-.\" $Id$
-.\"
 .TH OCAMLDEBUG 1
 
 .SH NAME
@@ -60,6 +58,8 @@ command.)
 Tell the debugger it is executed under Emacs.  (See
 .I "The OCaml user's manual"
 for information on how to run the debugger under Emacs.)
+Implies
+.BR \-machine-readable .
 .TP
 .BI \-I \ directory
 Add
@@ -68,6 +68,13 @@ to the list of directories searched for source files and
 compiled files.  (See also the
 .B directory
 command.)
+.TP
+.BI -machine-readable
+Print information in a format more suitable for machines instead of human
+operators where applicable. For example, when describing a location in a
+program, such as when printing a backtrace, print the program counter and
+character offset in a file instead of the filename, line number, and character
+offset in that line.
 .TP
 .BI \-s \ socket
 Use

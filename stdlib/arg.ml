@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 type key = string
 type doc = string
 type usage_msg = string
@@ -66,9 +64,10 @@ let make_symlist prefix sep suffix l =
 let print_spec buf (key, spec, doc) =
   if String.length doc > 0 then
     match spec with
-    | Symbol (l, _) -> bprintf buf "  %s %s%s\n" key (make_symlist "{" "|" "}" l)
-                               doc
-    | _ -> bprintf buf "  %s %s\n" key doc
+    | Symbol (l, _) ->
+        bprintf buf "  %s %s%s\n" key (make_symlist "{" "|" "}" l) doc
+    | _ ->
+        bprintf buf "  %s %s\n" key doc
 ;;
 
 let help_action () = raise (Stop (Unknown "-help"));;
@@ -103,7 +102,7 @@ let usage speclist errmsg =
 
 let current = ref 0;;
 
-let parse_argv ?(current=current) argv speclist anonfun errmsg =
+let parse_argv_dynamic ?(current=current) argv speclist anonfun errmsg =
   let l = Array.length argv in
   let b = Buffer.create 200 in
   let initpos = !current in
@@ -113,16 +112,16 @@ let parse_argv ?(current=current) argv speclist anonfun errmsg =
       | Unknown "-help" -> ()
       | Unknown "--help" -> ()
       | Unknown s ->
-          bprintf b "%s: unknown option `%s'.\n" progname s
+          bprintf b "%s: unknown option '%s'.\n" progname s
       | Missing s ->
-          bprintf b "%s: option `%s' needs an argument.\n" progname s
+          bprintf b "%s: option '%s' needs an argument.\n" progname s
       | Wrong (opt, arg, expected) ->
-          bprintf b "%s: wrong argument `%s'; option `%s' expects %s.\n"
+          bprintf b "%s: wrong argument '%s'; option '%s' expects %s.\n"
                   progname arg opt expected
       | Message s ->
           bprintf b "%s: %s.\n" progname s
     end;
-    usage_b b speclist errmsg;
+    usage_b b !speclist errmsg;
     if error = Unknown "-help" || error = Unknown "--help"
     then raise (Help (Buffer.contents b))
     else raise (Bad (Buffer.contents b))
@@ -130,9 +129,9 @@ let parse_argv ?(current=current) argv speclist anonfun errmsg =
   incr current;
   while !current < l do
     let s = argv.(!current) in
-    if String.length s >= 1 && String.get s 0 = '-' then begin
+    if String.length s >= 1 && s.[0] = '-' then begin
       let action =
-        try assoc3 s speclist
+        try assoc3 s !speclist
         with Not_found -> stop (Unknown s)
       in
       begin try
@@ -211,6 +210,10 @@ let parse_argv ?(current=current) argv speclist anonfun errmsg =
   done;
 ;;
 
+let parse_argv ?(current=current) argv speclist anonfun errmsg =
+  parse_argv_dynamic ~current:current argv (ref speclist) anonfun errmsg;
+;;
+
 let parse l f msg =
   try
     parse_argv Sys.argv l f msg;
@@ -219,7 +222,15 @@ let parse l f msg =
   | Help msg -> printf "%s" msg; exit 0;
 ;;
 
-let rec second_word s =
+let parse_dynamic l f msg =
+  try
+    parse_argv_dynamic Sys.argv l f msg;
+  with
+  | Bad msg -> eprintf "%s" msg; exit 2;
+  | Help msg -> printf "%s" msg; exit 0;
+;;
+
+let second_word s =
   let len = String.length s in
   let rec loop n =
     if n >= len then len

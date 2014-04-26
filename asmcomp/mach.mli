@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Representation of machine code by sequences of pseudoinstructions *)
 
 type integer_comparison =
@@ -19,7 +17,7 @@ type integer_comparison =
   | Iunsigned of Cmm.comparison
 
 type integer_operation =
-    Iadd | Isub | Imul | Idiv | Imod
+    Iadd | Isub | Imul | Imulh | Idiv | Imod
   | Iand | Ior | Ixor | Ilsl | Ilsr | Iasr
   | Icomp of integer_comparison
   | Icheckbound
@@ -38,8 +36,9 @@ type operation =
   | Ispill
   | Ireload
   | Iconst_int of nativeint
-  | Iconst_float of string
+  | Iconst_float of float
   | Iconst_symbol of string
+  | Iconst_blockheader of nativeint
   | Icall_ind
   | Icall_imm of string
   | Itailcall_ind
@@ -74,13 +73,14 @@ and instruction_desc =
   | Icatch of int * instruction * instruction
   | Iexit of int
   | Itrywith of instruction * instruction
-  | Iraise
+  | Iraise of Lambda.raise_kind
 
 type fundecl =
   { fun_name: string;
     fun_args: Reg.t array;
     fun_body: instruction;
-    fun_fast: bool }
+    fun_fast: bool;
+    fun_dbg : Debuginfo.t }
 
 val dummy_instr: instruction
 val end_instr: unit -> instruction

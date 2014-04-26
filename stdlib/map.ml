@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 module type OrderedType =
   sig
     type t
@@ -29,7 +27,8 @@ module type S =
     val add: key -> 'a -> 'a t -> 'a t
     val singleton: key -> 'a -> 'a t
     val remove: key -> 'a t -> 'a t
-    val merge: (key -> 'a option -> 'b option -> 'c option) -> 'a t -> 'b t -> 'c t
+    val merge:
+          (key -> 'a option -> 'b option -> 'c option) -> 'a t -> 'b t -> 'c t
     val compare: ('a -> 'a -> int) -> 'a t -> 'a t -> int
     val equal: ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
     val iter: (key -> 'a -> unit) -> 'a t -> unit
@@ -200,20 +199,6 @@ module Make(Ord: OrderedType) = struct
         Empty -> false
       | Node(l, v, d, r, _) -> p v d || exists p l || exists p r
 
-    let filter p s =
-      let rec filt accu = function
-        | Empty -> accu
-        | Node(l, v, d, r, _) ->
-            filt (filt (if p v d then add v d accu else accu) l) r in
-      filt Empty s
-
-    let partition p s =
-      let rec part (t, f as accu) = function
-        | Empty -> accu
-        | Node(l, v, d, r, _) ->
-            part (part (if p v d then (add v d t, f) else (t, add v d f)) l) r in
-      part (Empty, Empty) s
-
     (* Beware: those two functions assume that the added k is *strictly*
        smaller (or bigger) than all the present keys in the tree; it
        does not test for equality with the current min (or max) key.
@@ -283,6 +268,26 @@ module Make(Ord: OrderedType) = struct
           concat_or_join (merge f l1 l2) v2 (f v2 d1 (Some d2)) (merge f r1 r2)
       | _ ->
           assert false
+
+    let rec filter p = function
+        Empty -> Empty
+      | Node(l, v, d, r, _) ->
+          (* call [p] in the expected left-to-right order *)
+          let l' = filter p l in
+          let pvd = p v d in
+          let r' = filter p r in
+          if pvd then join l' v d r' else concat l' r'
+
+    let rec partition p = function
+        Empty -> (Empty, Empty)
+      | Node(l, v, d, r, _) ->
+          (* call [p] in the expected left-to-right order *)
+          let (lt, lf) = partition p l in
+          let pvd = p v d in
+          let (rt, rf) = partition p r in
+          if pvd
+          then (join lt v d rt, concat lf rf)
+          else (concat lt rt, join lf v d rf)
 
     type 'a enumeration = End | More of key * 'a * 'a t * 'a enumeration
 

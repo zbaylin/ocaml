@@ -1,4 +1,5 @@
 (***********************************************************************)
+(*                                                                     *)
 (*                             OCamldoc                                *)
 (*                                                                     *)
 (*            Maxence Guesdon, projet Cristal, INRIA Rocquencourt      *)
@@ -8,8 +9,6 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (*                                                                     *)
 (***********************************************************************)
-
-(* $Id$ *)
 
 (** Merge of information from [.ml] and [.mli] for a module.*)
 
@@ -246,7 +245,7 @@ let merge_types merge_options mli ml =
             | None, Some d -> Some d
             | Some d1, Some d2 ->
                 if List.mem Merge_description merge_options then
-                  Some (d1 @ d2)
+                  Some (merge_info merge_options d1 d2)
                 else
                   Some d1
           in
@@ -274,7 +273,7 @@ let merge_types merge_options mli ml =
             | None, Some d -> Some d
             | Some d1, Some d2 ->
                 if List.mem Merge_description merge_options then
-                  Some (d1 @ d2)
+                  Some (merge_info merge_options d1 d2)
                 else
                   Some d1
           in
@@ -995,7 +994,7 @@ let merge merge_options modules_list =
                    raise (Failure (Odoc_messages.two_interfaces m.m_name))
             )
         | _ ->
-            (* two many Module.t ! *)
+            (* too many Module.t ! *)
             raise (Failure (Odoc_messages.too_many_module_objects m.m_name))
 
   in

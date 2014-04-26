@@ -1,4 +1,5 @@
 (***********************************************************************)
+(*                                                                     *)
 (*                             OCamldoc                                *)
 (*                                                                     *)
 (*            Maxence Guesdon, projet Cristal, INRIA Rocquencourt      *)
@@ -8,8 +9,6 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (*                                                                     *)
 (***********************************************************************)
-
-(* $Id: odoc_literate.ml,v 1.1 2008/02/28 11:09:33 guesdon Exp $ *)
 
 open Odoc_info
 module Naming = Odoc_html.Naming
@@ -127,8 +126,8 @@ class html =
           "a:active {color : Red; text-decoration : underline; }" ;
           ".keyword { font-weight : bold ; color : Red }" ;
           ".keywordsign { color : #C04600 }" ;
-          ".superscript { font-size : 4 }" ;
-          ".subscript { font-size : 4 }" ;
+          ".superscript { font-size : 0.6em }" ;
+          ".subscript { font-size : 0.6em }" ;
           ".comment { color : Green }" ;
           ".constructor { color : Blue }" ;
           ".type { color : #5C6585 }" ;

@@ -1,4 +1,5 @@
 (***********************************************************************)
+(*                                                                     *)
 (*                             OCamldoc                                *)
 (*                                                                     *)
 (*            Maxence Guesdon, projet Cristal, INRIA Rocquencourt      *)
@@ -8,8 +9,6 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (*                                                                     *)
 (***********************************************************************)
-
-(* $Id$ *)
 
 (** Representation and manipulation of modules and module types. *)
 
@@ -47,7 +46,7 @@ and module_alias = {
 
 and module_parameter = {
     mp_name : string ; (** the name *)
-    mp_type : Types.module_type ; (** the type *)
+    mp_type : Types.module_type option ; (** the type *)
     mp_type_code : string ; (** the original code *)
     mp_kind : module_type_kind ; (** the way the parameter was built *)
   }
@@ -238,7 +237,7 @@ let rec module_elements ?(trans=true) m =
         module_elements ~trans: trans
           { m_name = "" ;
             m_info = None ;
-            m_type = Types.Tmty_signature [] ;
+            m_type = Types.Mty_signature [] ;
             m_is_interface = false ; m_file = "" ; m_kind = k ;
             m_loc = Odoc_types.dummy_loc ;
             m_top_deps = [] ;

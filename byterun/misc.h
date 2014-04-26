@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Miscellaneous macros and variables. */
 
 #ifndef CAML_MISC_H
@@ -53,12 +51,19 @@ typedef char * addr;
 #define CAMLprim
 #define CAMLextern extern
 
+/* Weak function definitions that can be overriden by external libs */
+/* Conservatively restricted to ELF and MacOSX platforms */
+#if defined(__GNUC__) && (defined (__ELF__) || defined(__APPLE__))
+#define CAMLweakdef __attribute__((weak))
+#else
+#define CAMLweakdef
+#endif
+
 /* Assertions */
 
-/* <private> */
-
 #ifdef DEBUG
-#define CAMLassert(x) ((x) ? 0 : caml_failed_assert ( #x , __FILE__, __LINE__))
+#define CAMLassert(x) \
+  ((x) ? (void) 0 : caml_failed_assert ( #x , __FILE__, __LINE__))
 CAMLextern int caml_failed_assert (char *, char *, int);
 #else
 #define CAMLassert(x) ((void) 0)
@@ -68,6 +73,13 @@ CAMLextern void caml_fatal_error (char *msg) Noreturn;
 CAMLextern void caml_fatal_error_arg (char *fmt, char *arg) Noreturn;
 CAMLextern void caml_fatal_error_arg2 (char *fmt1, char *arg1,
                                        char *fmt2, char *arg2) Noreturn;
+
+/* Safe string operations */
+
+CAMLextern char * caml_strdup(const char * s);
+CAMLextern char * caml_strconcat(int n, ...); /* n args of const char * type */
+
+/* <private> */
 
 /* Data structures */
 
@@ -129,6 +141,13 @@ extern void caml_set_fields (char *, unsigned long, unsigned long);
 
 #ifndef CAML_AVOID_CONFLICTS
 #define Assert CAMLassert
+#endif
+
+/* snprintf emulation for Win32 */
+
+#ifdef _WIN32
+extern int caml_snprintf(char * buf, size_t size, const char * format, ...);
+#define snprintf caml_snprintf
 #endif
 
 /* </private> */

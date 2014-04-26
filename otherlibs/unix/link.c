@@ -11,13 +11,24 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 #include <mlvalues.h>
+#include <memory.h>
+#include <signals.h>
 #include "unixsupport.h"
 
 CAMLprim value unix_link(value path1, value path2)
 {
-  if (link(String_val(path1), String_val(path2)) == -1) uerror("link", path2);
-  return Val_unit;
+  CAMLparam2(path1, path2);
+  char * p1;
+  char * p2;
+  int ret;
+  p1 = caml_strdup(String_val(path1));
+  p2 = caml_strdup(String_val(path2));
+  caml_enter_blocking_section();
+  ret = link(p1, p2);
+  caml_leave_blocking_section();
+  caml_stat_free(p1);
+  caml_stat_free(p2);
+  if (ret == -1) uerror("link", path2);
+  CAMLreturn(Val_unit);
 }

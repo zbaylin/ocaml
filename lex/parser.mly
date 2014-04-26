@@ -10,8 +10,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* The grammar for lexer definitions */
 
 %{
@@ -50,7 +48,8 @@ let as_cset = function
 %token <int> Tchar
 %token <string> Tstring
 %token <Syntax.location> Taction
-%token Trule Tparse Tparse_shortest Tand Tequal Tend Tor Tunderscore Teof Tlbracket Trbracket
+%token Trule Tparse Tparse_shortest Tand Tequal Tend Tor Tunderscore Teof
+       Tlbracket Trbracket Trefill
 %token Tstar Tmaybe Tplus Tlparen Trparen Tcaret Tdash Tlet Tas Tsharp
 
 %right Tas
@@ -66,16 +65,19 @@ let as_cset = function
 %%
 
 lexer_definition:
-    header named_regexps Trule definition other_definitions header Tend
+    header named_regexps refill_handler Trule definition other_definitions
+    header Tend
         { {header = $1;
-           entrypoints = $4 :: List.rev $5;
-           trailer = $6} }
+           refill_handler = $3;
+           entrypoints = $5 :: List.rev $6;
+           trailer = $7} }
 ;
 header:
     Taction
         { $1 }
   | /*epsilon*/
-        { { start_pos = 0; end_pos = 0; start_line = 1; start_col = 0 } }
+        { { loc_file = ""; start_pos = 0; end_pos = 0; start_line = 1;
+            start_col = 0 } }
 ;
 named_regexps:
     named_regexps Tlet Tident Tequal regexp
@@ -88,6 +90,10 @@ other_definitions:
         { $3::$1 }
   | /*epsilon*/
         { [] }
+;
+refill_handler:
+  | Trefill Taction { Some $2 }
+  | /*empty*/ { None }
 ;
 definition:
     Tident arguments Tequal Tparse entry
@@ -163,6 +169,7 @@ regexp:
         {let p1 = Parsing.rhs_start_pos 3
          and p2 = Parsing.rhs_end_pos 3 in
          let p = {
+           loc_file = p1.Lexing.pos_fname ;
            start_pos = p1.Lexing.pos_cnum ;
            end_pos = p2.Lexing.pos_cnum ;
            start_line = p1.Lexing.pos_lnum ;

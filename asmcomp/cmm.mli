@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Second intermediate language (machine independent) *)
 
 type machtype_component =
@@ -58,7 +56,7 @@ type operation =
   | Cload of memory_chunk
   | Calloc
   | Cstore of memory_chunk
-  | Caddi | Csubi | Cmuli | Cdivi | Cmodi
+  | Caddi | Csubi | Cmuli | Cmulhi | Cdivi | Cmodi
   | Cand | Cor | Cxor | Clsl | Clsr | Casr
   | Ccmpi of comparison
   | Cadda | Csuba
@@ -67,16 +65,17 @@ type operation =
   | Caddf | Csubf | Cmulf | Cdivf
   | Cfloatofint | Cintoffloat
   | Ccmpf of comparison
-  | Craise of Debuginfo.t
+  | Craise of Lambda.raise_kind * Debuginfo.t
   | Ccheckbound of Debuginfo.t
 
 type expression =
     Cconst_int of int
   | Cconst_natint of nativeint
-  | Cconst_float of string
+  | Cconst_float of float
   | Cconst_symbol of string
   | Cconst_pointer of int
   | Cconst_natpointer of nativeint
+  | Cconst_blockheader of nativeint
   | Cvar of Ident.t
   | Clet of Ident.t * expression * expression
   | Cassign of Ident.t * expression
@@ -94,7 +93,8 @@ type fundecl =
   { fun_name: string;
     fun_args: (Ident.t * machtype) list;
     fun_body: expression;
-    fun_fast: bool }
+    fun_fast: bool;
+    fun_dbg : Debuginfo.t; }
 
 type data_item =
     Cdefine_symbol of string
@@ -104,8 +104,8 @@ type data_item =
   | Cint16 of int
   | Cint32 of nativeint
   | Cint of nativeint
-  | Csingle of string
-  | Cdouble of string
+  | Csingle of float
+  | Cdouble of float
   | Csymbol_address of string
   | Clabel_address of int
   | Cstring of string

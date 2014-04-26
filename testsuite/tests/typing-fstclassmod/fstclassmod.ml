@@ -140,3 +140,26 @@ let () =
   print_endline (Print.to_string int 10);
   print_endline (Print.to_string (pair int (pair str int)) (123, ("A", 456)))
 
+
+(* #6262: first-class modules and module type aliases *)
+
+module type S1 = sig end
+module type S2 = S1
+
+let _f (x : (module S1)) : (module S2) = x
+
+module X = struct
+  module type S
+end
+module Y = struct include X end
+
+let _f (x : (module X.S)) : (module Y.S) = x
+
+(* PR#6194, main example *)
+module type S3 = sig val x : bool end;;
+let f = function
+  | Some (module M : S3) when M.x ->1
+  | Some _ -> 2
+  | None -> 3
+;;
+print_endline (string_of_int (f (Some (module struct let x = false end))));;

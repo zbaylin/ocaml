@@ -15,7 +15,6 @@
 (* Dead code elimination: remove pure instructions whose results are
    not used. *)
 
-open Reg
 open Mach
 
 (* [deadcode i] returns a pair of an optimized instruction [i']
@@ -23,7 +22,7 @@ open Mach
 
 let rec deadcode i =
   match i.desc with
-  | Iend | Ireturn | Iop(Itailcall_ind) | Iop(Itailcall_imm _) | Iraise ->
+  | Iend | Ireturn | Iop(Itailcall_ind) | Iop(Itailcall_imm _) | Iraise _ ->
       (i, Reg.add_set_array i.live i.arg)
   | Iop op ->
       let (s, before) = deadcode i.next in

@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Generation of bytecode + relocation information *)
 
 open Config
@@ -22,23 +20,25 @@ open Instruct
 open Opcodes
 open Cmo_format
 
+module StringSet = Set.Make(String)
+
 (* Buffering of bytecode *)
 
-let out_buffer = ref(String.create 1024)
+let out_buffer = ref(LongString.create 1024)
 and out_position = ref 0
 
 let out_word b1 b2 b3 b4 =
   let p = !out_position in
-  if p >= String.length !out_buffer then begin
-    let len = String.length !out_buffer in
-    let new_buffer = String.create (2 * len) in
-    String.blit !out_buffer 0 new_buffer 0 len;
+  if p >= LongString.length !out_buffer then begin
+    let len = LongString.length !out_buffer in
+    let new_buffer = LongString.create (2 * len) in
+    LongString.blit !out_buffer 0 new_buffer 0 len;
     out_buffer := new_buffer
   end;
-  String.unsafe_set !out_buffer p (Char.unsafe_chr b1);
-  String.unsafe_set !out_buffer (p+1) (Char.unsafe_chr b2);
-  String.unsafe_set !out_buffer (p+2) (Char.unsafe_chr b3);
-  String.unsafe_set !out_buffer (p+3) (Char.unsafe_chr b4);
+  LongString.set !out_buffer p (Char.unsafe_chr b1);
+  LongString.set !out_buffer (p+1) (Char.unsafe_chr b2);
+  LongString.set !out_buffer (p+2) (Char.unsafe_chr b3);
+  LongString.set !out_buffer (p+3) (Char.unsafe_chr b4);
   out_position := p + 4
 
 let out opcode =
@@ -88,10 +88,10 @@ let extend_label_table needed =
 
 let backpatch (pos, orig) =
   let displ = (!out_position - orig) asr 2 in
-  !out_buffer.[pos] <- Char.unsafe_chr displ;
-  !out_buffer.[pos+1] <- Char.unsafe_chr (displ asr 8);
-  !out_buffer.[pos+2] <- Char.unsafe_chr (displ asr 16);
-  !out_buffer.[pos+3] <- Char.unsafe_chr (displ asr 24)
+  LongString.set !out_buffer pos (Char.unsafe_chr displ);
+  LongString.set !out_buffer (pos+1) (Char.unsafe_chr (displ asr 8));
+  LongString.set !out_buffer (pos+2) (Char.unsafe_chr (displ asr 16));
+  LongString.set !out_buffer (pos+3) (Char.unsafe_chr (displ asr 24))
 
 let define_label lbl =
   if lbl >= Array.length !label_table then extend_label_table lbl;
@@ -137,8 +137,12 @@ and slot_for_c_prim name =
 (* Debugging events *)
 
 let events = ref ([] : debug_event list)
+let debug_dirs = ref StringSet.empty
 
 let record_event ev =
+  let path = ev.ev_loc.Location.loc_start.Lexing.pos_fname in
+  let abspath = Location.absolute_path path in
+  debug_dirs := StringSet.add (Filename.dirname abspath) !debug_dirs;
   ev.ev_pos <- !out_position;
   events := ev :: !events
 
@@ -148,6 +152,7 @@ let init () =
   out_position := 0;
   label_table := Array.create 16 (Label_undefined []);
   reloc_info := [];
+  debug_dirs := StringSet.empty;
   events := []
 
 (* Emission of one instruction *)
@@ -245,7 +250,9 @@ let emit_instr = function
   | Kboolnot -> out opBOOLNOT
   | Kpushtrap lbl -> out opPUSHTRAP; out_label lbl
   | Kpoptrap -> out opPOPTRAP
-  | Kraise -> out opRAISE
+  | Kraise Raise_regular -> out opRAISE
+  | Kraise Raise_reraise -> out opRERAISE
+  | Kraise Raise_notrace -> out opRAISE_NOTRACE
   | Kcheck_signals -> out opCHECK_SIGNALS
   | Kccall(name, n) ->
       if n <= 5
@@ -342,7 +349,8 @@ let rec emit = function
     (Kgetglobal _ as instr1) :: (Kgetfield _ as instr2) :: c ->
       emit (Kpush :: instr1 :: instr2 :: ev :: c)
   | Kpush :: (Kevent {ev_kind = Event_before} as ev) ::
-    (Kacc _ | Kenvacc _ | Koffsetclosure _ | Kgetglobal _ | Kconst _ as instr) :: c ->
+    (Kacc _ | Kenvacc _ | Koffsetclosure _ | Kgetglobal _ | Kconst _ as instr)::
+    c ->
       emit (Kpush :: instr :: ev :: c)
   | Kgetglobal id :: Kgetfield n :: c ->
       out opGETGLOBALFIELD; slot_for_getglobal id; out_int n; emit c
@@ -359,11 +367,12 @@ let to_file outchan unit_name code =
   output_binary_int outchan 0;
   let pos_code = pos_out outchan in
   emit code;
-  output outchan !out_buffer 0 !out_position;
+  LongString.output outchan !out_buffer 0 !out_position;
   let (pos_debug, size_debug) =
     if !Clflags.debug then begin
       let p = pos_out outchan in
       output_value outchan !events;
+      output_value outchan (StringSet.elements !debug_dirs);
       (p, pos_out outchan - p)
     end else
       (0, 0) in
@@ -373,7 +382,8 @@ let to_file outchan unit_name code =
       cu_codesize = !out_position;
       cu_reloc = List.rev !reloc_info;
       cu_imports = Env.imported_units();
-      cu_primitives = List.map Primitive.byte_name !Translmod.primitive_declarations;
+      cu_primitives = List.map Primitive.byte_name
+                               !Translmod.primitive_declarations;
       cu_force_link = false;
       cu_debug = pos_debug;
       cu_debugsize = size_debug } in
@@ -392,7 +402,7 @@ let to_memory init_code fun_code =
   emit init_code;
   emit fun_code;
   let code = Meta.static_alloc !out_position in
-  String.unsafe_blit !out_buffer 0 code 0 !out_position;
+  LongString.unsafe_blit_to_string !out_buffer 0 code 0 !out_position;
   let reloc = List.rev !reloc_info
   and code_size = !out_position in
   init();
@@ -403,7 +413,7 @@ let to_memory init_code fun_code =
 let to_packed_file outchan code =
   init();
   emit code;
-  output outchan !out_buffer 0 !out_position;
+  LongString.output outchan !out_buffer 0 !out_position;
   let reloc = !reloc_info in
   init();
   reloc

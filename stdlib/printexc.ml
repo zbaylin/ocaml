@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Printf;;
 
 let printers = ref []
@@ -60,8 +58,12 @@ let to_string x =
             sprintf locfmt file line char (char+6) "Undefined recursive module"
         | _ ->
             let x = Obj.repr x in
-            let constructor = (Obj.magic(Obj.field (Obj.field x 0) 0) : string) in
-            constructor ^ (fields x) in
+            if Obj.tag x <> 0 then
+              (Obj.magic (Obj.field x 0) : string)
+            else
+              let constructor =
+                (Obj.magic (Obj.field (Obj.field x 0) 0) : string) in
+              constructor ^ (fields x) in
   conv !printers
 
 let print fct arg =
@@ -80,6 +82,11 @@ let catch fct arg =
     eprintf "Uncaught exception: %s\n" (to_string x);
     exit 2
 
+type raw_backtrace
+
+external get_raw_backtrace:
+  unit -> raw_backtrace = "caml_get_exception_raw_backtrace"
+
 type loc_info =
   | Known_location of bool   (* is_raise *)
                     * string (* filename *)
@@ -88,8 +95,13 @@ type loc_info =
                     * int    (* end char *)
   | Unknown_location of bool (*is_raise*)
 
-external get_exception_backtrace:
-  unit -> loc_info array option = "caml_get_exception_backtrace"
+(* to avoid warning *)
+let _ = [Known_location (false, "", 0, 0, 0); Unknown_location false]
+
+type backtrace = loc_info array
+
+external convert_raw_backtrace:
+  raw_backtrace -> backtrace option = "caml_convert_raw_backtrace"
 
 let format_loc_info pos li =
   let is_raise =
@@ -110,8 +122,8 @@ let format_loc_info pos li =
       sprintf "%s unknown location"
               info
 
-let print_backtrace outchan =
-  match get_exception_backtrace() with
+let print_exception_backtrace outchan backtrace =
+  match backtrace with
   | None ->
       fprintf outchan
         "(Program not linked with -g, cannot print stack backtrace)\n"
@@ -121,8 +133,15 @@ let print_backtrace outchan =
           fprintf outchan "%s\n" (format_loc_info i a.(i))
       done
 
-let get_backtrace () =
-  match get_exception_backtrace() with
+let print_raw_backtrace outchan raw_backtrace =
+  print_exception_backtrace outchan (convert_raw_backtrace raw_backtrace)
+
+(* confusingly named: prints the global current backtrace *)
+let print_backtrace outchan =
+  print_raw_backtrace outchan (get_raw_backtrace ())
+
+let backtrace_to_string backtrace =
+  match backtrace with
   | None ->
      "(Program not linked with -g, cannot print stack backtrace)\n"
   | Some a ->
@@ -133,8 +152,96 @@ let get_backtrace () =
       done;
       Buffer.contents b
 
+let raw_backtrace_to_string raw_backtrace =
+  backtrace_to_string (convert_raw_backtrace raw_backtrace)
+
+(* confusingly named:
+   returns the *string* corresponding to the global current backtrace *)
+let get_backtrace () =
+  (* we could use the caml_get_exception_backtrace primitive here, but
+     we hope to deprecate it so it's better to just compose the
+     raw stuff *)
+  backtrace_to_string (convert_raw_backtrace (get_raw_backtrace ()))
+
 external record_backtrace: bool -> unit = "caml_record_backtrace"
 external backtrace_status: unit -> bool = "caml_backtrace_status"
 
 let register_printer fn =
   printers := fn :: !printers
+
+
+external get_callstack: int -> raw_backtrace = "caml_get_current_callstack"
+
+
+let exn_slot x =
+  let x = Obj.repr x in
+  if Obj.tag x = 0 then Obj.field x 0 else x
+
+let exn_slot_id x =
+  let slot = exn_slot x in
+  (Obj.obj (Obj.field slot 1) : int)
+
+let exn_slot_name x =
+  let slot = exn_slot x in
+  (Obj.obj (Obj.field slot 0) : string)
+
+
+let uncaught_exception_handler = ref None
+
+let set_uncaught_exception_handler fn = uncaught_exception_handler := Some fn
+
+let empty_backtrace : raw_backtrace = Obj.obj (Obj.new_block Obj.abstract_tag 0)
+
+let try_get_raw_backtrace () =
+  try
+    get_raw_backtrace ()
+  with _ (* Out_of_memory? *) ->
+    empty_backtrace
+
+let handle_uncaught_exception' exn debugger_in_use =
+  try
+    (* Get the backtrace now, in case one of the [at_exit] function
+       destroys it. *)
+    let raw_backtrace =
+      if debugger_in_use (* Same test as in [byterun/printexc.c] *) then
+        empty_backtrace
+      else
+        try_get_raw_backtrace ()
+    in
+    (try Pervasives.do_at_exit () with _ -> ());
+    match !uncaught_exception_handler with
+    | None ->
+        eprintf "Fatal error: exception %s\n" (to_string exn);
+        print_raw_backtrace stderr raw_backtrace;
+        flush stderr
+    | Some handler ->
+        try
+          handler exn raw_backtrace
+        with exn' ->
+          let raw_backtrace' = try_get_raw_backtrace () in
+          eprintf "Fatal error: exception %s\n" (to_string exn);
+          print_raw_backtrace stderr raw_backtrace;
+          eprintf "Fatal error in uncaught exception handler: exception %s\n"
+            (to_string exn');
+          print_raw_backtrace stderr raw_backtrace';
+          flush stderr
+  with
+    | Out_of_memory ->
+        prerr_endline
+          "Fatal error: out of memory in uncaught exception handler"
+
+(* This function is called by [caml_fatal_uncaught_exception] in
+   [byterun/printexc.c] which expects no exception is raised. *)
+let handle_uncaught_exception exn debugger_in_use =
+  try
+    handle_uncaught_exception' exn debugger_in_use
+  with _ ->
+    (* There is not much we can do at this point *)
+    ()
+
+external register_named_value : string -> 'a -> unit
+  = "caml_register_named_value"
+
+let () =
+  register_named_value "Printexc.handle_uncaught_exception"
+    handle_uncaught_exception

@@ -10,8 +10,6 @@
 #                                                                       #
 #########################################################################
 
-# $Id$
-
 include Makefile.shared
 
 # To make custom toplevels
@@ -21,7 +19,7 @@ ocamlmktop: ocamlmktop.tpl ../config/Makefile
 	chmod +x ocamlmktop
 
 install::
-	cp ocamlmktop $(BINDIR)
+	cp ocamlmktop $(INSTALL_BINDIR)
 
 clean::
 	rm -f ocamlmktop

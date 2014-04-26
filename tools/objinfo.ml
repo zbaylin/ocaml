@@ -13,8 +13,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Dump info on .cmi, .cmo, .cmx, .cma, .cmxa, .cmxs files
    and on bytecode executables. *)
 
@@ -22,7 +20,6 @@ open Printf
 open Misc
 open Config
 open Cmo_format
-open Clambda
 
 let input_stringlist ic len =
   let get_string_list sect len =
@@ -34,8 +31,7 @@ let input_stringlist ic len =
       else acc
     in fold 0 0 []
   in
-  let sect = String.create len in
-  let _ = really_input ic sect 0 len in
+  let sect = Misc.input_bytes ic len in
   get_string_list sect len
 
 let print_name_crc (name, crc) =
@@ -57,31 +53,6 @@ let print_cmo_infos cu =
         List.iter print_line l);
   printf "Force link: %s\n" (if cu.cu_force_link then "YES" else "no")
 
-let rec print_approx_infos ppf = function
-    Value_closure(fundesc, approx) ->
-      Format.fprintf ppf "@[<2>function %s@ arity %i"
-        fundesc.fun_label fundesc.fun_arity;
-      if fundesc.fun_closed then begin
-        Format.fprintf ppf "@ (closed)"
-      end;
-      if fundesc.fun_inline <> None then begin
-        Format.fprintf ppf "@ (inline)"
-      end;
-      Format.fprintf ppf "@ -> @ %a@]" print_approx_infos approx
-  | Value_tuple approx ->
-      let tuple ppf approx =
-        for i = 0 to Array.length approx - 1 do
-          if i > 0 then Format.fprintf ppf ";@ ";
-          Format.fprintf ppf "%i: %a" i print_approx_infos approx.(i)
-        done in
-      Format.fprintf ppf "@[<hov 1>(%a)@]" tuple approx
-  | Value_unknown ->
-      Format.fprintf ppf "_"
-  | Value_integer n ->
-      Format.fprintf ppf "%d" n
-  | Value_constptr n ->
-      Format.fprintf ppf "%dp" n
-
 let print_spaced_string s =
   printf " %s" s
 
@@ -98,7 +69,7 @@ let print_cma_infos (lib : Cmo_format.library) =
   printf "\n";
   List.iter print_cmo_infos lib.lib_units
 
-let print_cmi_infos name sign comps crcs =
+let print_cmi_infos name sign crcs =
   printf "Unit name: %s\n" name;
   printf "Interfaces imported:\n";
   List.iter print_name_crc crcs
@@ -119,7 +90,7 @@ let print_cmx_infos (ui, crc) =
   print_general_infos
     ui.ui_name crc ui.ui_defines ui.ui_imports_cmi ui.ui_imports_cmx;
   printf "Approximation:\n";
-  Format.fprintf Format.std_formatter "  %a@." print_approx_infos ui.ui_approx;
+  Format.fprintf Format.std_formatter "  %a@." Printclambda.approx ui.ui_approx;
   let pr_funs _ fns =
     List.iter (fun arity -> printf " %d" arity) fns in
   printf "Currying functions:%a\n" pr_funs ui.ui_curry_fun;
@@ -218,8 +189,7 @@ let dump_obj filename =
   printf "File %s\n" filename;
   let ic = open_in_bin filename in
   let len_magic_number = String.length cmo_magic_number in
-  let magic_number = String.create len_magic_number in
-  really_input ic magic_number 0 len_magic_number;
+  let magic_number = Misc.input_bytes ic len_magic_number in
   if magic_number = cmo_magic_number then begin
     let cu_pos = input_binary_int ic in
     seek_in ic cu_pos;
@@ -233,10 +203,10 @@ let dump_obj filename =
     close_in ic;
     print_cma_infos toc
   end else if magic_number = cmi_magic_number then begin
-    let (name, sign, comps) = input_value ic in
-    let crcs = input_value ic in
+    let cmi = Cmi_format.input_cmi ic in
     close_in ic;
-    print_cmi_infos name sign comps crcs
+    print_cmi_infos cmi.Cmi_format.cmi_name cmi.Cmi_format.cmi_sign
+      cmi.Cmi_format.cmi_crcs
   end else if magic_number = cmx_magic_number then begin
     let ui = (input_value ic : unit_infos) in
     let crc = Digest.input ic in
@@ -271,10 +241,12 @@ let dump_obj filename =
     end
   end
 
+let arg_list = []
+let arg_usage =
+   Printf.sprintf "%s [OPTIONS] FILES : give information on files" Sys.argv.(0)
+
 let main() =
-  for i = 1 to Array.length Sys.argv - 1 do
-    dump_obj Sys.argv.(i)
-  done;
+  Arg.parse arg_list dump_obj arg_usage;
   exit 0
 
 let _ = main ()

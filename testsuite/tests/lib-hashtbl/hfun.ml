@@ -1,3 +1,15 @@
+(***********************************************************************)
+(*                                                                     *)
+(*                                OCaml                                *)
+(*                                                                     *)
+(*            Xavier Leroy, projet Gallium, INRIA Rocquencourt         *)
+(*                                                                     *)
+(*  Copyright 2011 Institut National de Recherche en Informatique et   *)
+(*  en Automatique.  All rights reserved.  This file is distributed    *)
+(*  under the terms of the Q Public License version 1.0.               *)
+(*                                                                     *)
+(***********************************************************************)
+
 (* Testing the hash function Hashtbl.hash *)
 (* What is tested:
      - reproducibility on various platforms, esp. 32/64 bit issues
@@ -23,7 +35,8 @@ let _ =
   printf "+infty\t\t%08x\n" (Hashtbl.hash infinity);
   printf "-infty\t\t%08x\n" (Hashtbl.hash neg_infinity);
   printf "NaN\t\t%08x\n" (Hashtbl.hash nan);
-  printf "NaN#2\t\t%08x\n" (Hashtbl.hash (Int64.float_of_bits 0xFF_F0_00_12_34_56_78_9AL));
+  printf "NaN#2\t\t%08x\n"
+         (Hashtbl.hash (Int64.float_of_bits 0xFF_F0_00_12_34_56_78_9AL));
   printf "NaN#3\t\t%08x\n" (Hashtbl.hash (0.0 /. 0.0));
 
   printf "-- Native integers:\n";
@@ -39,12 +52,3 @@ let _ =
   printf "[10..0]\t\t%08x\n" (Hashtbl.hash [10;9;8;7;6;5;4;3;2;1;0]);
 
   ()
-
-
-
-
-
-
-
-
-  

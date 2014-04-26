@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Liveness analysis.
    Annotate mach code with the set of regs live at each point. *)
 
@@ -113,7 +111,7 @@ let rec live i finally =
       live_at_raise := saved_live_at_raise;
       i.live <- before_body;
       before_body
-  | Iraise ->
+  | Iraise _ ->
       i.live <- !live_at_raise;
       Reg.add_set_array !live_at_raise i.arg
 

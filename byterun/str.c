@@ -11,12 +11,12 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Operations on strings */
 
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "alloc.h"
 #include "fail.h"
 #include "mlvalues.h"
@@ -62,6 +62,149 @@ CAMLprim value caml_string_set(value str, value index, value newval)
   intnat idx = Long_val(index);
   if (idx < 0 || idx >= caml_string_length(str)) caml_array_bound_error();
   Byte_u(str, idx) = Int_val(newval);
+  return Val_unit;
+}
+
+CAMLprim value caml_string_get16(value str, value index)
+{
+  intnat res;
+  unsigned char b1, b2;
+  intnat idx = Long_val(index);
+  if (idx < 0 || idx + 1 >= caml_string_length(str)) caml_array_bound_error();
+  b1 = Byte_u(str, idx);
+  b2 = Byte_u(str, idx + 1);
+#ifdef ARCH_BIG_ENDIAN
+  res = b1 << 8 | b2;
+#else
+  res = b2 << 8 | b1;
+#endif
+  return Val_int(res);
+}
+
+CAMLprim value caml_string_get32(value str, value index)
+{
+  intnat res;
+  unsigned char b1, b2, b3, b4;
+  intnat idx = Long_val(index);
+  if (idx < 0 || idx + 3 >= caml_string_length(str)) caml_array_bound_error();
+  b1 = Byte_u(str, idx);
+  b2 = Byte_u(str, idx + 1);
+  b3 = Byte_u(str, idx + 2);
+  b4 = Byte_u(str, idx + 3);
+#ifdef ARCH_BIG_ENDIAN
+  res = b1 << 24 | b2 << 16 | b3 << 8 | b4;
+#else
+  res = b4 << 24 | b3 << 16 | b2 << 8 | b1;
+#endif
+  return caml_copy_int32(res);
+}
+
+CAMLprim value caml_string_get64(value str, value index)
+{
+  uint64 res;
+  unsigned char b1, b2, b3, b4, b5, b6, b7, b8;
+  intnat idx = Long_val(index);
+  if (idx < 0 || idx + 7 >= caml_string_length(str)) caml_array_bound_error();
+  b1 = Byte_u(str, idx);
+  b2 = Byte_u(str, idx + 1);
+  b3 = Byte_u(str, idx + 2);
+  b4 = Byte_u(str, idx + 3);
+  b5 = Byte_u(str, idx + 4);
+  b6 = Byte_u(str, idx + 5);
+  b7 = Byte_u(str, idx + 6);
+  b8 = Byte_u(str, idx + 7);
+#ifdef ARCH_BIG_ENDIAN
+  res = (uint64) b1 << 56 | (uint64) b2 << 48
+        | (uint64) b3 << 40 | (uint64) b4 << 32
+        | (uint64) b5 << 24 | (uint64) b6 << 16
+        | (uint64) b7 << 8 | (uint64) b8;
+#else
+  res = (uint64) b8 << 56 | (uint64) b7 << 48
+        | (uint64) b6 << 40 | (uint64) b5 << 32
+        | (uint64) b4 << 24 | (uint64) b3 << 16
+        | (uint64) b2 << 8 | (uint64) b1;
+#endif
+  return caml_copy_int64(res);
+}
+
+CAMLprim value caml_string_set16(value str, value index, value newval)
+{
+  unsigned char b1, b2;
+  intnat val;
+  intnat idx = Long_val(index);
+  if (idx < 0 || idx + 1 >= caml_string_length(str)) caml_array_bound_error();
+  val = Long_val(newval);
+#ifdef ARCH_BIG_ENDIAN
+  b1 = 0xFF & val >> 8;
+  b2 = 0xFF & val;
+#else
+  b2 = 0xFF & val >> 8;
+  b1 = 0xFF & val;
+#endif
+  Byte_u(str, idx) = b1;
+  Byte_u(str, idx + 1) = b2;
+  return Val_unit;
+}
+
+CAMLprim value caml_string_set32(value str, value index, value newval)
+{
+  unsigned char b1, b2, b3, b4;
+  intnat val;
+  intnat idx = Long_val(index);
+  if (idx < 0 || idx + 3 >= caml_string_length(str)) caml_array_bound_error();
+  val = Int32_val(newval);
+#ifdef ARCH_BIG_ENDIAN
+  b1 = 0xFF & val >> 24;
+  b2 = 0xFF & val >> 16;
+  b3 = 0xFF & val >> 8;
+  b4 = 0xFF & val;
+#else
+  b4 = 0xFF & val >> 24;
+  b3 = 0xFF & val >> 16;
+  b2 = 0xFF & val >> 8;
+  b1 = 0xFF & val;
+#endif
+  Byte_u(str, idx) = b1;
+  Byte_u(str, idx + 1) = b2;
+  Byte_u(str, idx + 2) = b3;
+  Byte_u(str, idx + 3) = b4;
+  return Val_unit;
+}
+
+CAMLprim value caml_string_set64(value str, value index, value newval)
+{
+  unsigned char b1, b2, b3, b4, b5, b6, b7, b8;
+  int64 val;
+  intnat idx = Long_val(index);
+  if (idx < 0 || idx + 7 >= caml_string_length(str)) caml_array_bound_error();
+  val = Int64_val(newval);
+#ifdef ARCH_BIG_ENDIAN
+  b1 = 0xFF & val >> 56;
+  b2 = 0xFF & val >> 48;
+  b3 = 0xFF & val >> 40;
+  b4 = 0xFF & val >> 32;
+  b5 = 0xFF & val >> 24;
+  b6 = 0xFF & val >> 16;
+  b7 = 0xFF & val >> 8;
+  b8 = 0xFF & val;
+#else
+  b8 = 0xFF & val >> 56;
+  b7 = 0xFF & val >> 48;
+  b6 = 0xFF & val >> 40;
+  b5 = 0xFF & val >> 32;
+  b4 = 0xFF & val >> 24;
+  b3 = 0xFF & val >> 16;
+  b2 = 0xFF & val >> 8;
+  b1 = 0xFF & val;
+#endif
+  Byte_u(str, idx) = b1;
+  Byte_u(str, idx + 1) = b2;
+  Byte_u(str, idx + 2) = b3;
+  Byte_u(str, idx + 3) = b4;
+  Byte_u(str, idx + 4) = b5;
+  Byte_u(str, idx + 5) = b6;
+  Byte_u(str, idx + 6) = b7;
+  Byte_u(str, idx + 7) = b8;
   return Val_unit;
 }
 
@@ -152,4 +295,69 @@ CAMLprim value caml_bitvect_test(value bv, value n)
 {
   int pos = Int_val(n);
   return Val_int(Byte_u(bv, pos >> 3) & (1 << (pos & 7)));
+}
+
+CAMLexport value caml_alloc_sprintf(const char * format, ...)
+{
+  va_list args;
+  char buf[64];
+  int n;
+  value res;
+
+#ifndef _WIN32
+  /* C99-compliant implementation */
+  va_start(args, format);
+  /* "vsnprintf(dest, sz, format, args)" writes at most "sz" characters
+     into "dest", including the terminating '\0'.  
+     It returns the number of characters of the formatted string,
+     excluding the terminating '\0'. */
+  n = vsnprintf(buf, sizeof(buf), format, args);
+  va_end(args);
+  /* Allocate a Caml string with length "n" as computed by vsnprintf. */
+  res = caml_alloc_string(n);
+  if (n < sizeof(buf)) {
+    /* All output characters were written to buf, including the 
+       terminating '\0'.  Just copy them to the result. */
+    memcpy(String_val(res), buf, n);
+  } else {
+    /* Re-do the formatting, outputting directly in the Caml string.
+       Note that caml_alloc_string left room for a '\0' at position n,
+       so the size passed to vsnprintf is n+1. */
+    va_start(args, format);
+    vsnprintf(String_val(res), n + 1, format, args);
+    va_end(args);
+  }
+  return res;
+#else
+  /* Implementation specific to the Microsoft CRT library */
+  va_start(args, format);
+  /* "_vsnprintf(dest, sz, format, args)" writes at most "sz" characters
+     into "dest".  Let "len" be the number of characters of the formatted
+     string.
+     If "len" < "sz", a null terminator was appended, and "len" is returned.
+     If "len" == "sz", no null termination, and "len" is returned.
+     If "len" > "sz", a negative value is returned. */
+  n = _vsnprintf(buf, sizeof(buf), format, args);
+  va_end(args);
+  if (n >= 0 && n <= sizeof(buf)) {
+    /* All output characters were written to buf.
+       "n" is the actual length of the output.
+       Copy the characters to a Caml string of length n. */
+    res = caml_alloc_string(n);
+    memcpy(String_val(res), buf, n);
+  } else {
+    /* Determine actual length of output, excluding final '\0' */
+    va_start(args, format);
+    n = _vscprintf(format, args);
+    va_end(args);
+    res = caml_alloc_string(n);
+    /* Re-do the formatting, outputting directly in the Caml string.
+       Note that caml_alloc_string left room for a '\0' at position n,
+       so the size passed to _vsnprintf is n+1. */
+    va_start(args, format);
+    _vsnprintf(String_val(res), n + 1, format, args);
+    va_end(args);
+  }
+  return res;
+#endif
 }

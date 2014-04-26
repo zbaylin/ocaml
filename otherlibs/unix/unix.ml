@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 type error =
     E2BIG
   | EACCES
@@ -91,6 +89,83 @@ let _ = Callback.register_exception "Unix.Unix_error"
 
 external error_message : error -> string = "unix_error_message"
 
+let () =
+  Printexc.register_printer
+    (function
+      | Unix_error (e, s, s') ->
+          let msg = match e with
+          | E2BIG -> "E2BIG"
+          | EACCES -> "EACCES"
+          | EAGAIN -> "EAGAIN"
+          | EBADF -> "EBADF"
+          | EBUSY -> "EBUSY"
+          | ECHILD -> "ECHILD"
+          | EDEADLK -> "EDEADLK"
+          | EDOM -> "EDOM"
+          | EEXIST -> "EEXIST"
+          | EFAULT -> "EFAULT"
+          | EFBIG -> "EFBIG"
+          | EINTR -> "EINTR"
+          | EINVAL -> "EINVAL"
+          | EIO -> "EIO"
+          | EISDIR -> "EISDIR"
+          | EMFILE -> "EMFILE"
+          | EMLINK -> "EMLINK"
+          | ENAMETOOLONG -> "ENAMETOOLONG"
+          | ENFILE -> "ENFILE"
+          | ENODEV -> "ENODEV"
+          | ENOENT -> "ENOENT"
+          | ENOEXEC -> "ENOEXEC"
+          | ENOLCK -> "ENOLCK"
+          | ENOMEM -> "ENOMEM"
+          | ENOSPC -> "ENOSPC"
+          | ENOSYS -> "ENOSYS"
+          | ENOTDIR -> "ENOTDIR"
+          | ENOTEMPTY -> "ENOTEMPTY"
+          | ENOTTY -> "ENOTTY"
+          | ENXIO -> "ENXIO"
+          | EPERM -> "EPERM"
+          | EPIPE -> "EPIPE"
+          | ERANGE -> "ERANGE"
+          | EROFS -> "EROFS"
+          | ESPIPE -> "ESPIPE"
+          | ESRCH -> "ESRCH"
+          | EXDEV -> "EXDEV"
+          | EWOULDBLOCK -> "EWOULDBLOCK"
+          | EINPROGRESS -> "EINPROGRESS"
+          | EALREADY -> "EALREADY"
+          | ENOTSOCK -> "ENOTSOCK"
+          | EDESTADDRREQ -> "EDESTADDRREQ"
+          | EMSGSIZE -> "EMSGSIZE"
+          | EPROTOTYPE -> "EPROTOTYPE"
+          | ENOPROTOOPT -> "ENOPROTOOPT"
+          | EPROTONOSUPPORT -> "EPROTONOSUPPORT"
+          | ESOCKTNOSUPPORT -> "ESOCKTNOSUPPORT"
+          | EOPNOTSUPP -> "EOPNOTSUPP"
+          | EPFNOSUPPORT -> "EPFNOSUPPORT"
+          | EAFNOSUPPORT -> "EAFNOSUPPORT"
+          | EADDRINUSE -> "EADDRINUSE"
+          | EADDRNOTAVAIL -> "EADDRNOTAVAIL"
+          | ENETDOWN -> "ENETDOWN"
+          | ENETUNREACH -> "ENETUNREACH"
+          | ENETRESET -> "ENETRESET"
+          | ECONNABORTED -> "ECONNABORTED"
+          | ECONNRESET -> "ECONNRESET"
+          | ENOBUFS -> "ENOBUFS"
+          | EISCONN -> "EISCONN"
+          | ENOTCONN -> "ENOTCONN"
+          | ESHUTDOWN -> "ESHUTDOWN"
+          | ETOOMANYREFS -> "ETOOMANYREFS"
+          | ETIMEDOUT -> "ETIMEDOUT"
+          | ECONNREFUSED -> "ECONNREFUSED"
+          | EHOSTDOWN -> "EHOSTDOWN"
+          | EHOSTUNREACH -> "EHOSTUNREACH"
+          | ELOOP -> "ELOOP"
+          | EOVERFLOW -> "EOVERFLOW"
+          | EUNKNOWNERR x -> Printf.sprintf "EUNKNOWNERR %d" x in
+          Some (Printf.sprintf "Unix.Unix_error(Unix.%s, %S, %S)" msg s s')
+      | _ -> None)
+
 let handle_unix_error f arg =
   try
     f arg
@@ -127,7 +202,8 @@ external execvp : string -> string array -> 'a = "unix_execvp"
 external execvpe : string -> string array -> string array -> 'a = "unix_execvpe"
 external fork : unit -> int = "unix_fork"
 external wait : unit -> int * process_status = "unix_wait"
-external waitpid : wait_flag list -> int -> int * process_status = "unix_waitpid"
+external waitpid : wait_flag list -> int -> int * process_status
+   = "unix_waitpid"
 external getpid : unit -> int = "unix_getpid"
 external getppid : unit -> int = "unix_getppid"
 external nice : int -> int = "unix_nice"
@@ -152,6 +228,7 @@ type open_flag =
   | O_SYNC
   | O_RSYNC
   | O_SHARE_DELETE
+  | O_CLOEXEC
 
 type file_perm = int
 
@@ -162,7 +239,8 @@ external openfile : string -> open_flag list -> file_perm -> file_descr
 external close : file_descr -> unit = "unix_close"
 external unsafe_read : file_descr -> string -> int -> int -> int = "unix_read"
 external unsafe_write : file_descr -> string -> int -> int -> int = "unix_write"
-external unsafe_single_write : file_descr -> string -> int -> int -> int = "unix_single_write"
+external unsafe_single_write : file_descr -> string -> int -> int -> int
+   = "unix_single_write"
 
 let read fd buf ofs len =
   if ofs < 0 || len < 0 || ofs > String.length buf - len
@@ -231,7 +309,8 @@ external link : string -> string -> unit = "unix_link"
 
 module LargeFile =
   struct
-    external lseek : file_descr -> int64 -> seek_command -> int64 = "unix_lseek_64"
+    external lseek : file_descr -> int64 -> seek_command -> int64
+       = "unix_lseek_64"
     external truncate : string -> int64 -> unit = "unix_truncate_64"
     external ftruncate : file_descr -> int64 -> unit = "unix_ftruncate_64"
     type stats =
@@ -762,6 +841,10 @@ external setsid : unit -> int = "unix_setsid"
 
 (* High-level process management (system, popen) *)
 
+let rec waitpid_non_intr pid =
+  try waitpid [] pid
+  with Unix_error (EINTR, _, _) -> waitpid_non_intr pid
+
 let system cmd =
   match fork() with
      0 -> begin try
@@ -769,7 +852,7 @@ let system cmd =
           with _ ->
             exit 127
           end
-  | id -> snd(waitpid [] id)
+  | id -> snd(waitpid_non_intr id)
 
 let rec safe_dup fd =
   let new_fd = dup fd in
@@ -839,27 +922,47 @@ let open_proc cmd proc input output toclose =
 let open_process_in cmd =
   let (in_read, in_write) = pipe() in
   let inchan = in_channel_of_descr in_read in
-  open_proc cmd (Process_in inchan) stdin in_write [in_read];
+  begin
+    try
+      open_proc cmd (Process_in inchan) stdin in_write [in_read];
+    with e ->
+      close_in inchan;
+      close in_write;
+      raise e
+  end;
   close in_write;
   inchan
 
 let open_process_out cmd =
   let (out_read, out_write) = pipe() in
   let outchan = out_channel_of_descr out_write in
-  open_proc cmd (Process_out outchan) out_read stdout [out_write];
+  begin
+    try
+      open_proc cmd (Process_out outchan) out_read stdout [out_write];
+    with e ->
+      close_out outchan;
+      close out_read;
+      raise e
+  end;
   close out_read;
   outchan
 
 let open_process cmd =
   let (in_read, in_write) = pipe() in
-  let (out_read, out_write) = pipe() in
-  let inchan = in_channel_of_descr in_read in
-  let outchan = out_channel_of_descr out_write in
-  open_proc cmd (Process(inchan, outchan)) out_read in_write
+  let fds_to_close = ref [in_read;in_write] in
+  try
+    let (out_read, out_write) = pipe() in
+    fds_to_close := [in_read;in_write;out_read;out_write];
+    let inchan = in_channel_of_descr in_read in
+    let outchan = out_channel_of_descr out_write in
+    open_proc cmd (Process(inchan, outchan)) out_read in_write
                                            [in_read; out_write];
-  close out_read;
-  close in_write;
-  (inchan, outchan)
+    close out_read;
+    close in_write;
+    (inchan, outchan)
+  with e ->
+    List.iter close !fds_to_close;
+    raise e
 
 let open_proc_full cmd env proc input output error toclose =
   let cloexec = List.for_all try_set_close_on_exec toclose in
@@ -875,17 +978,24 @@ let open_proc_full cmd env proc input output error toclose =
 
 let open_process_full cmd env =
   let (in_read, in_write) = pipe() in
-  let (out_read, out_write) = pipe() in
-  let (err_read, err_write) = pipe() in
-  let inchan = in_channel_of_descr in_read in
-  let outchan = out_channel_of_descr out_write in
-  let errchan = in_channel_of_descr err_read in
-  open_proc_full cmd env (Process_full(inchan, outchan, errchan))
-                 out_read in_write err_write [in_read; out_write; err_read];
-  close out_read;
-  close in_write;
-  close err_write;
-  (inchan, outchan, errchan)
+  let fds_to_close = ref [in_read;in_write] in
+  try
+    let (out_read, out_write) = pipe() in
+    fds_to_close := out_read::out_write:: !fds_to_close;
+    let (err_read, err_write) = pipe() in
+    fds_to_close := err_read::err_write:: !fds_to_close;
+    let inchan = in_channel_of_descr in_read in
+    let outchan = out_channel_of_descr out_write in
+    let errchan = in_channel_of_descr err_read in
+    open_proc_full cmd env (Process_full(inchan, outchan, errchan))
+      out_read in_write err_write [in_read; out_write; err_read];
+    close out_read;
+    close in_write;
+    close err_write;
+    (inchan, outchan, errchan)
+  with e ->
+    List.iter close !fds_to_close;
+    raise e
 
 let find_proc_id fun_name proc =
   try
@@ -894,10 +1004,6 @@ let find_proc_id fun_name proc =
     pid
   with Not_found ->
     raise(Unix_error(EBADF, fun_name, ""))
-
-let rec waitpid_non_intr pid =
-  try waitpid [] pid
-  with Unix_error (EINTR, _, _) -> waitpid_non_intr pid
 
 let close_process_in inchan =
   let pid = find_proc_id "close_process_in" (Process_in inchan) in

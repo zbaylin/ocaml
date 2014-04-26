@@ -11,18 +11,45 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* type 'a option = None | Some of 'a *)
 
 (* Exceptions *)
 
+external register_named_value : string -> 'a -> unit
+                              = "caml_register_named_value"
+
+let () =
+  (* for asmrun/fail.c *)
+  register_named_value "Pervasives.array_bound_error"
+    (Invalid_argument "index out of bounds")
+
+
 external raise : exn -> 'a = "%raise"
+external raise_notrace : exn -> 'a = "%raise_notrace"
 
 let failwith s = raise(Failure s)
 let invalid_arg s = raise(Invalid_argument s)
 
 exception Exit
+
+(* Composition operators *)
+
+external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
+external ( @@ ) : ('a -> 'b) -> 'a -> 'b = "%apply"
+
+(* Debugging *)
+
+external __LOC__ : string = "%loc_LOC"
+external __FILE__ : string = "%loc_FILE"
+external __LINE__ : int = "%loc_LINE"
+external __MODULE__ : string = "%loc_MODULE"
+external __POS__ : string * int * int * int = "%loc_POS"
+
+external __LOC_OF__ : 'a -> string * 'a = "%loc_LOC"
+external __FILE_OF__ : 'a -> string * 'a = "%loc_FILE"
+external __LINE_OF__ : 'a -> int * 'a = "%loc_LINE"
+external __MODULE_OF__ : 'a -> string * 'a = "%loc_MODULE"
+external __POS_OF__ : 'a -> (string * int * int * int) * 'a = "%loc_POS"
 
 (* Comparisons *)
 
@@ -72,8 +99,8 @@ external ( lsl ) : int -> int -> int = "%lslint"
 external ( lsr ) : int -> int -> int = "%lsrint"
 external ( asr ) : int -> int -> int = "%asrint"
 
-let min_int = 1 lsl (if 1 lsl 31 = 0 then 30 else 62)
-let max_int = min_int - 1
+let max_int = (-1) lsr 1
+let min_int = max_int + 1
 
 (* Floating-point operations *)
 
@@ -166,6 +193,15 @@ external ignore : 'a -> unit = "%ignore"
 
 external fst : 'a * 'b -> 'a = "%field0"
 external snd : 'a * 'b -> 'b = "%field1"
+
+(* References *)
+
+type 'a ref = { mutable contents : 'a }
+external ref : 'a -> 'a ref = "%makemutable"
+external ( ! ) : 'a ref -> 'a = "%field0"
+external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
+external incr : int ref -> unit = "%incr"
+external decr : int ref -> unit = "%decr"
 
 (* String conversion functions *)
 
@@ -397,15 +433,6 @@ module LargeFile =
     external in_channel_length : in_channel -> int64 = "caml_ml_channel_size_64"
   end
 
-(* References *)
-
-type 'a ref = { mutable contents : 'a }
-external ref : 'a -> 'a ref = "%makemutable"
-external ( ! ) : 'a ref -> 'a = "%field0"
-external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
-external incr : int ref -> unit = "%incr"
-external decr : int ref -> unit = "%decr"
-
 (* Formats *)
 type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6
 
@@ -450,8 +477,5 @@ let do_at_exit () = (!exit_function) ()
 let exit retcode =
   do_at_exit ();
   sys_exit retcode
-
-external register_named_value : string -> 'a -> unit
-                              = "caml_register_named_value"
 
 let _ = register_named_value "Pervasives.do_at_exit" do_at_exit

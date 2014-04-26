@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Buffered input/output. */
 
 #include <errno.h>
@@ -23,6 +21,9 @@
 #include "config.h"
 #ifdef HAS_UNISTD
 #include <unistd.h>
+#endif
+#ifdef __CYGWIN__
+#include </usr/include/io.h>
 #endif
 #include "alloc.h"
 #include "custom.h"
@@ -117,7 +118,7 @@ CAMLexport file_offset caml_channel_size(struct channel *channel)
   file_offset end;
   int fd;
 
-  /* We extract data from [channel] before dropping the Caml lock, in case
+  /* We extract data from [channel] before dropping the OCaml lock, in case
      someone else touches the block. */
   fd = channel->fd;
   offset = channel->offset;
@@ -279,6 +280,11 @@ CAMLexport int caml_do_read(int fd, char *p, unsigned int n)
   do {
     caml_enter_blocking_section();
     retcode = read(fd, p, n);
+#if defined(_WIN32)
+    if (retcode == -1 && errno == ENOMEM && n > 16384){
+      retcode = read(fd, p, 16384);
+    }
+#endif
     caml_leave_blocking_section();
   } while (retcode == -1 && errno == EINTR);
   if (retcode == -1) caml_sys_io_error(NO_ARG);
@@ -411,7 +417,7 @@ CAMLexport intnat caml_input_scan_line(struct channel *channel)
   return (p - channel->curr);
 }
 
-/* Caml entry points for the I/O functions.  Wrap struct channel *
+/* OCaml entry points for the I/O functions.  Wrap struct channel *
    objects into a heap-allocated object.  Perform locking
    and unlocking around the I/O operations. */
 /* FIXME CAMLexport, but not in io.h  exported for Cash ? */
@@ -785,21 +791,3 @@ CAMLprim value caml_ml_input_scan_line(value vchannel)
   Unlock(channel);
   CAMLreturn (Val_long(res));
 }
-
-/* Conversion between file_offset and int64 */
-
-#ifndef ARCH_INT64_TYPE
-CAMLexport value caml_Val_file_offset(file_offset fofs)
-{
-  int64 ofs;
-  ofs.l = fofs;
-  ofs.h = 0;
-  return caml_copy_int64(ofs);
-}
-
-CAMLexport file_offset caml_File_offset_val(value v)
-{
-  int64 ofs = Int64_val(v);
-  return (file_offset) ofs.l;
-}
-#endif

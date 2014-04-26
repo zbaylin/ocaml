@@ -11,9 +11,10 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(** Operation on rational numbers.
 
-(* Module [Ratio]: operations on rational numbers *)
+    This module is used to support the implementation of {!Num} and
+    should not be called directly. *)
 
 open Nat
 open Big_int
@@ -25,6 +26,8 @@ open Big_int
 
 type ratio
 
+(**/**)
+
 val null_denominator : ratio -> bool
 val numerator_ratio : ratio -> big_int
 val denominator_ratio : ratio -> big_int
@@ -32,8 +35,9 @@ val sign_ratio : ratio -> int
 val normalize_ratio : ratio -> ratio
 val cautious_normalize_ratio : ratio -> ratio
 val cautious_normalize_ratio_when_printing : ratio -> ratio
-val create_ratio : big_int -> big_int -> ratio
+val create_ratio : big_int -> big_int -> ratio (* assumes nothing *)
 val create_normalized_ratio : big_int -> big_int -> ratio
+                              (* assumes normalized argument *)
 val is_normalized_ratio : ratio -> bool
 val report_sign_ratio : ratio -> big_int -> big_int
 val abs_ratio : ratio -> ratio

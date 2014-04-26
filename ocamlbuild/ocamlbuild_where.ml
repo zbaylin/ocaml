@@ -1,4 +1,5 @@
 (***********************************************************************)
+(*                                                                     *)
 (*                             ocamlbuild                              *)
 (*                                                                     *)
 (*  Nicolas Pouillard, Berke Durak, projet Gallium, INRIA Rocquencourt *)
@@ -9,10 +10,10 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let bindir = ref Ocamlbuild_Myocamlbuild_config.bindir;;
+let bindir = ref Ocamlbuild_config.bindir;;
 let libdir = ref begin
   Filename.concat
     (try Sys.getenv "OCAMLLIB"
-     with Not_found -> Ocamlbuild_Myocamlbuild_config.libdir)
+     with Not_found -> Ocamlbuild_config.libdir)
     "ocamlbuild"
 end;;

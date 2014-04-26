@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Cmm
 open Arch
 open Reg
@@ -24,7 +22,8 @@ open Mach
    Operation                    Res     Arg1    Arg2
      Imove                      R       S
                              or S       R
-     Iconst_int                 S if 32-bit signed, R otherwise
+     Iconst_int         ]       S if 32-bit signed, R otherwise
+     Iconst_blockheader ]
      Iconst_float               R
      Iconst_symbol (not PIC)    S
      Iconst_symbol (PIC)        R
@@ -34,7 +33,8 @@ open Mach
      Istore                             R       R
      Iintop(Icomp)              R       R       S
                             or  S       S       R
-     Iintop(Imul|Idiv|mod)      R       R       S
+     Iintop(Imul|Idiv|Imod)     R       R       S
+     Iintop(Imulh)              R       R       S
      Iintop(shift)              S       S       R
      Iintop(others)             R       R       S
                             or  S       S       R
@@ -73,10 +73,10 @@ method! reload_operation op arg res =
       (* This add will be turned into a lea; args and results must be
          in registers *)
       super#reload_operation op arg res
-  | Iintop(Idiv | Imod | Ilsl | Ilsr | Iasr)
+  | Iintop(Imulh | Idiv | Imod | Ilsl | Ilsr | Iasr)
   | Iintop_imm(_, _) ->
       (* The argument(s) and results can be either in register or on stack *)
-      (* Note: Idiv, Imod: arg(0) and res(0) already forced in regs
+      (* Note: Imulh, Idiv, Imod: arg(0) and res(0) already forced in regs
                Ilsl, Ilsr, Iasr: arg(1) already forced in regs *)
       (arg, res)
   | Iintop(Imul) | Iaddf | Isubf | Imulf | Idivf ->
@@ -88,7 +88,7 @@ method! reload_operation op arg res =
   | Ifloatofint | Iintoffloat ->
       (* Result must be in register, but argument can be on stack *)
       (arg, (if stackp res.(0) then [| self#makereg res.(0) |] else res))
-  | Iconst_int n ->
+  | Iconst_int n | Iconst_blockheader n ->
       if n <= 0x7FFFFFFFn && n >= -0x80000000n
       then (arg, res)
       else super#reload_operation op arg res

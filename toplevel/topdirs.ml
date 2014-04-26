@@ -10,14 +10,11 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Toplevel directives *)
 
 open Format
 open Misc
 open Longident
-open Path
 open Types
 open Cmo_format
 open Trace
@@ -40,6 +37,16 @@ let dir_directory s =
   Dll.add_path [d]
 
 let _ = Hashtbl.add directive_table "directory" (Directive_string dir_directory)
+
+(* To remove a directory from the load path *)
+let dir_remove_directory s =
+  let d = expand_directory Config.standard_library s in
+  Config.load_path := List.filter (fun d' -> d' <> d) !Config.load_path;
+  Dll.remove_path [d]
+
+let _ =
+  Hashtbl.add directive_table "remove_directory"
+    (Directive_string dir_remove_directory)
 
 (* To change the current directory *)
 
@@ -86,7 +93,9 @@ let load_compunit ic filename ppf compunit =
   end
 
 let rec load_file recursive ppf name =
-  let filename = try Some (find_in_path !Config.load_path name) with Not_found -> None in
+  let filename =
+    try Some (find_in_path !Config.load_path name) with Not_found -> None
+  in
   match filename with
   | None -> fprintf ppf "Cannot find file %s.@." name; false
   | Some filename ->
@@ -101,8 +110,7 @@ let rec load_file recursive ppf name =
 
 and really_load_file recursive ppf name filename ic =
   let ic = open_in_bin filename in
-  let buffer = String.create (String.length Config.cmo_magic_number) in
-  really_input ic buffer 0 (String.length Config.cmo_magic_number);
+  let buffer = Misc.input_bytes ic (String.length Config.cmo_magic_number) in
   try
     if buffer = Config.cmo_magic_number then begin
       let compunit_pos = input_binary_int ic in  (* Go to descriptor *)
@@ -111,11 +119,16 @@ and really_load_file recursive ppf name filename ic =
       if recursive then
         List.iter
           (function
-            | (Reloc_getglobal id, _) when not (Symtable.is_global_defined id) ->
+            | (Reloc_getglobal id, _)
+              when not (Symtable.is_global_defined id) ->
                 let file = Ident.name id ^ ".cmo" in
-                begin match try Some (Misc.find_in_path_uncap !Config.load_path file) with Not_found -> None with
+                begin match try Some (Misc.find_in_path_uncap !Config.load_path
+                                        file)
+                      with Not_found -> None
+                with
                 | None -> ()
-                | Some file -> if not (load_file recursive ppf file) then raise Load_failed
+                | Some file ->
+                    if not (load_file recursive ppf file) then raise Load_failed
                 end
             | _ -> ()
           )
@@ -151,15 +164,19 @@ let _ = Hashtbl.add directive_table "load" (Directive_string (dir_load std_out))
 
 let dir_load_rec ppf name = ignore (load_file true ppf name)
 
-let _ = Hashtbl.add directive_table "load_rec" (Directive_string (dir_load_rec std_out))
+let _ = Hashtbl.add directive_table "load_rec"
+                    (Directive_string (dir_load_rec std_out))
 
 let load_file = load_file false
 
 (* Load commands from a file *)
 
 let dir_use ppf name = ignore(Toploop.use_file ppf name)
+let dir_mod_use ppf name = ignore(Toploop.mod_use_file ppf name)
 
 let _ = Hashtbl.add directive_table "use" (Directive_string (dir_use std_out))
+let _ = Hashtbl.add directive_table "mod_use"
+                    (Directive_string (dir_mod_use std_out))
 
 (* Install, remove a printer *)
 
@@ -204,7 +221,7 @@ let find_printer_type ppf lid =
 let dir_install_printer ppf lid =
   try
     let (ty_arg, path, is_old_style) = find_printer_type ppf lid in
-    let v = eval_path path in
+    let v = eval_path !toplevel_env path in
     let print_function =
       if is_old_style then
         (fun formatter repr -> Obj.obj v (Obj.obj repr))
@@ -245,7 +262,7 @@ let dir_trace ppf lid =
         fprintf ppf "%a is an external function and cannot be traced.@."
         Printtyp.longident lid
     | _ ->
-        let clos = eval_path path in
+        let clos = eval_path !toplevel_env path in
         (* Nothing to do if it's not a closure *)
         if Obj.is_block clos
         && (Obj.tag clos = Obj.closure_tag || Obj.tag clos = Obj.infix_tag)
@@ -301,6 +318,93 @@ let parse_warnings ppf iserr s =
   try Warnings.parse_options iserr s
   with Arg.Bad err -> fprintf ppf "%s.@." err
 
+(* Typing information *)
+
+let rec trim_modtype = function
+    Mty_signature _ -> Mty_signature []
+  | Mty_functor (id, mty, mty') ->
+      Mty_functor (id, mty, trim_modtype mty')
+  | Mty_ident _ | Mty_alias _ as mty -> mty
+
+let trim_signature = function
+    Mty_signature sg ->
+      Mty_signature
+        (List.map
+           (function
+               Sig_module (id, md, rs) ->
+                 Sig_module (id, {md with md_type = trim_modtype md.md_type},
+                             rs)
+             (*| Sig_modtype (id, Modtype_manifest mty) ->
+                 Sig_modtype (id, Modtype_manifest (trim_modtype mty))*)
+             | item -> item)
+           sg)
+  | mty -> mty
+
+let dir_show ppf args =
+  let open Parsetree in
+  let id lid =
+    let s = match lid with
+        Longident.Lident s -> s
+      | Longident.Ldot (_,s) -> s
+      | Longident.Lapply _ ->
+          fprintf ppf "Invalid path %a@." Printtyp.longident lid;
+          raise Exit
+    in
+    Ident.create_persistent s
+  in
+  let env = !Toploop.toplevel_env in
+  try
+    let loc = Location.none in
+    let item =
+      match args with
+      | [ Pdir_keyword "val"; Pdir_ident lid ] ->
+          let id = id lid in
+          let path, desc = Typetexp.find_value env loc lid in
+          Sig_value (id, desc)
+      | [ Pdir_keyword "type"; Pdir_ident lid ] ->
+          let id = id lid in
+          let path, desc = Typetexp.find_type env loc lid in
+          Sig_type (id, desc, Trec_not)
+      | [ Pdir_keyword "exception"; Pdir_ident lid ] ->
+          let id = id lid in
+          let desc = Typetexp.find_constructor env loc lid in
+          begin match desc.cstr_tag with
+          | Cstr_constant _ | Cstr_block _ ->
+              fprintf ppf "@[This constructor is not an exception.@]@.";
+              raise Exit
+          | Cstr_exception _ ->
+              Sig_exception (id, {exn_args=desc.cstr_args;
+                                  exn_loc=desc.cstr_loc;
+                                  exn_attributes=desc.cstr_attributes;
+                                 })
+          end
+      | [ Pdir_keyword "module"; Pdir_ident lid ] ->
+          let id = id lid in
+          let path = Typetexp.find_module env loc lid in
+          let md = Env.find_module path env in
+          Sig_module (id, {md with md_type = trim_signature md.md_type},
+                      Trec_not)
+      | [ Pdir_keyword "module"; Pdir_keyword "type"; Pdir_ident lid ] ->
+          let id = id lid in
+          let path, desc = Typetexp.find_modtype env loc lid in
+          Sig_modtype (id, desc)
+      | [ Pdir_keyword "class"; Pdir_ident lid ] ->
+          let id = id lid in
+          let path, desc = Typetexp.find_class env loc lid in
+          Sig_class (id, desc, Trec_not)
+      | [ Pdir_keyword "class"; Pdir_keyword "type"; Pdir_ident lid ] ->
+          let id = id lid in
+          let path, desc = Typetexp.find_class_type env loc lid in
+          Sig_class_type (id, desc, Trec_not)
+      | _ -> fprintf ppf "@[Bad usage for #show@]@."; raise Exit
+    in
+    fprintf ppf "@[%a@]@." Printtyp.signature [item]
+  with
+  | Not_found ->
+      fprintf ppf "@[Unknown element.@]@."
+  | Exit ->
+      ()
+
 let _ =
   Hashtbl.add directive_table "trace" (Directive_ident (dir_trace std_out));
   Hashtbl.add directive_table "untrace" (Directive_ident (dir_untrace std_out));
@@ -329,4 +433,9 @@ let _ =
              (Directive_string (parse_warnings std_out false));
 
   Hashtbl.add directive_table "warn_error"
-             (Directive_string (parse_warnings std_out true))
+             (Directive_string (parse_warnings std_out true));
+
+  Hashtbl.add directive_table "show"
+     (Directive_generic (dir_show std_out));
+
+  ()

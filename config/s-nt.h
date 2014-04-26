@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Operating system dependencies, Intel x86 processors, Windows NT */
 
 #define OCAML_OS_TYPE "Win32"
@@ -27,3 +25,5 @@
 #define HAS_MKTIME
 #define HAS_PUTENV
 #define HAS_LOCALE
+#define HAS_BROKEN_PRINTF
+#define HAS_IPV6

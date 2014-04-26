@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* The generic hashing primitive */
 
 /* The interface of this file is in "mlvalues.h" (for [caml_hash_variant])
@@ -22,12 +20,6 @@
 #include "custom.h"
 #include "memory.h"
 #include "hash.h"
-
-#ifdef ARCH_INT64_TYPE
-#include "int64_native.h"
-#else
-#include "int64_emul.h"
-#endif
 
 /* The new implementation, based on MurmurHash 3,
      http://code.google.com/p/smhasher/  */
@@ -55,7 +47,7 @@ CAMLexport uint32 caml_hash_mix_uint32(uint32 h, uint32 d)
   return h;
 }
 
-/* Mix a platform-native integer. */  
+/* Mix a platform-native integer. */
 
 CAMLexport uint32 caml_hash_mix_intnat(uint32 h, intnat d)
 {
@@ -79,9 +71,7 @@ CAMLexport uint32 caml_hash_mix_intnat(uint32 h, intnat d)
 
 CAMLexport uint32 caml_hash_mix_int64(uint32 h, int64 d)
 {
-  uint32 hi, lo;
-
-  I64_split(d, hi, lo);
+  uint32 hi = (uint32) (d >> 32), lo = (uint32) d;
   MIX(h, lo);
   MIX(h, hi);
   return h;
@@ -146,7 +136,7 @@ CAMLexport uint32 caml_hash_mix_float(uint32 hash, float d)
   return hash;
 }
 
-/* Mix a Caml string */
+/* Mix an OCaml string */
 
 CAMLexport uint32 caml_hash_mix_string(uint32 h, value s)
 {
@@ -230,7 +220,7 @@ CAMLprim value caml_hash(value count, value limit, value seed, value obj)
         /* Block contents unknown.  Do nothing. */
         break;
       case Infix_tag:
-        /* Mix in the offset to distinguish different functions from 
+        /* Mix in the offset to distinguish different functions from
            the same mutually-recursive definition */
         h = caml_hash_mix_uint32(h, Infix_offset_val(v));
         v = v - Infix_offset_val(v);
@@ -271,7 +261,7 @@ CAMLprim value caml_hash(value count, value limit, value seed, value obj)
   /* Final mixing of bits */
   FINAL_MIX(h);
   /* Fold result to the range [0, 2^30-1] so that it is a nonnegative
-     Caml integer both on 32 and 64-bit platforms. */
+     OCaml integer both on 32 and 64-bit platforms. */
   return Val_int(h & 0x3FFFFFFFU);
 }
 

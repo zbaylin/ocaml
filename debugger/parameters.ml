@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Miscellaneous parameters *)
 
 open Primitives
@@ -37,3 +35,5 @@ let add_path_for mdl dir =
 
 (* Used by emacs ? *)
 let emacs = ref false
+
+let machine_readable = ref false

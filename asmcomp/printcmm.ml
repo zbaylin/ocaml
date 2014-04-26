@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Pretty-printing of C-- code *)
 
 open Format
@@ -62,6 +60,7 @@ let operation = function
   | Caddi -> "+"
   | Csubi -> "-"
   | Cmuli -> "*"
+  | Cmulhi -> "*h"
   | Cdivi -> "/"
   | Cmodi -> "mod"
   | Cand -> "and"
@@ -83,13 +82,14 @@ let operation = function
   | Cfloatofint -> "floatofint"
   | Cintoffloat -> "intoffloat"
   | Ccmpf c -> Printf.sprintf "%sf" (comparison c)
-  | Craise d -> "raise" ^ Debuginfo.to_string d
+  | Craise (k, d) -> Lambda.raise_kind k ^ Debuginfo.to_string d
   | Ccheckbound d -> "checkbound" ^ Debuginfo.to_string d
 
 let rec expr ppf = function
   | Cconst_int n -> fprintf ppf "%i" n
-  | Cconst_natint n -> fprintf ppf "%s" (Nativeint.to_string n)
-  | Cconst_float s -> fprintf ppf "%s" s
+  | Cconst_natint n | Cconst_blockheader n ->
+    fprintf ppf "%s" (Nativeint.to_string n)
+  | Cconst_float n -> fprintf ppf "%F" n
   | Cconst_symbol s -> fprintf ppf "\"%s\"" s
   | Cconst_pointer n -> fprintf ppf "%ia" n
   | Cconst_natpointer n -> fprintf ppf "%sa" (Nativeint.to_string n)
@@ -176,8 +176,9 @@ let fundecl ppf f =
        if !first then first := false else fprintf ppf "@ ";
        fprintf ppf "%a: %a" Ident.print id machtype ty)
      cases in
-  fprintf ppf "@[<1>(function %s@;<1 4>@[<1>(%a)@]@ @[%a@])@]@."
-         f.fun_name print_cases f.fun_args sequence f.fun_body
+  fprintf ppf "@[<1>(function%s %s@;<1 4>@[<1>(%a)@]@ @[%a@])@]@."
+         (Debuginfo.to_string f.fun_dbg) f.fun_name
+         print_cases f.fun_args sequence f.fun_body
 
 let data_item ppf = function
   | Cdefine_symbol s -> fprintf ppf "\"%s\":" s
@@ -187,8 +188,8 @@ let data_item ppf = function
   | Cint16 n -> fprintf ppf "int16 %i" n
   | Cint32 n -> fprintf ppf "int32 %s" (Nativeint.to_string n)
   | Cint n -> fprintf ppf "int %s" (Nativeint.to_string n)
-  | Csingle f -> fprintf ppf "single %s" f
-  | Cdouble f -> fprintf ppf "double %s" f
+  | Csingle f -> fprintf ppf "single %F" f
+  | Cdouble f -> fprintf ppf "double %F" f
   | Csymbol_address s -> fprintf ppf "addr \"%s\"" s
   | Clabel_address l -> fprintf ppf "addr L%i" l
   | Cstring s -> fprintf ppf "string \"%s\"" s

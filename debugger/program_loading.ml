@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Program loading *)
 
 open Unix
@@ -34,6 +32,45 @@ let load_program () =
   main_loop ()
 
 (*** Launching functions. ***)
+
+(* Returns a command line prefix to set environment for the debuggee *)
+let get_unix_environment () =
+  let f (vname, vvalue) =
+    Printf.sprintf "%s=%s " vname (Filename.quote vvalue)
+  in
+  String.concat "" (List.map f !Debugger_config.environment)
+;;
+
+(* Notes:
+   1. This quoting is not the same as [Filename.quote] because the "set"
+      command is a shell built-in and its quoting rules are different
+      from regular commands.
+   2. Microsoft's documentation omits the double-quote from the list
+      of characters that need quoting, but that is a mistake (unquoted
+      quotes are included in the value, but they alter the quoting of
+      characters between them).
+   Reference: http://msdn.microsoft.com/en-us/library/bb490954.aspx
+ *)
+let quote_for_windows_shell s =
+  let b = Buffer.create (20 + String.length s) in
+  for i = 0 to String.length s - 1 do
+    begin match s.[i] with
+    | '<' | '>' | '|' | '&' | '^' | '\"' ->
+      Buffer.add_char b '^';
+    | _ -> ()
+    end;
+    Buffer.add_char b s.[i];
+  done;
+  Buffer.contents b
+;;
+
+(* Returns a command line prefix to set environment for the debuggee *)
+let get_win32_environment () =
+  (* Note: no space before the & or Windows will add it to the value *)
+  let f (vname, vvalue) =
+    Printf.sprintf "set %s=%s&" vname (quote_for_windows_shell vvalue)
+  in
+  String.concat "" (List.map f !Debugger_config.environment)
 
 (* A generic function for launching the program *)
 let generic_exec_unix cmdline = function () ->
@@ -76,23 +113,25 @@ let generic_exec =
     "Win32" -> generic_exec_win
   | _ -> generic_exec_unix
 
-(* Execute the program by calling the runtime explicitely *)
+(* Execute the program by calling the runtime explicitly *)
 let exec_with_runtime =
   generic_exec
     (function () ->
       match Sys.os_type with
         "Win32" ->
-          (* This fould fail on a file name with spaces
+          (* This would fail on a file name with spaces
              but quoting is even worse because Unix.create_process
              thinks each command line parameter is a file.
              So no good solution so far *)
-          Printf.sprintf "set CAML_DEBUG_SOCKET=%s && %s %s %s"
+          Printf.sprintf "%sset CAML_DEBUG_SOCKET=%s& %s %s %s"
+                     (get_win32_environment ())
                      !socket_name
                      runtime_program
                      !program_name
                      !arguments
       | _ ->
-          Printf.sprintf "CAML_DEBUG_SOCKET=%s %s %s %s"
+          Printf.sprintf "%sCAML_DEBUG_SOCKET=%s %s %s %s"
+                     (get_unix_environment ())
                      !socket_name
                      (Filename.quote runtime_program)
                      (Filename.quote !program_name)
@@ -105,12 +144,14 @@ let exec_direct =
       match Sys.os_type with
         "Win32" ->
           (* See the comment above *)
-          Printf.sprintf "set CAML_DEBUG_SOCKET=%s && %s %s"
+          Printf.sprintf "%sset CAML_DEBUG_SOCKET=%s& %s %s"
+                     (get_win32_environment ())
                      !socket_name
                      !program_name
                      !arguments
       | _ ->
-          Printf.sprintf "CAML_DEBUG_SOCKET=%s %s %s"
+          Printf.sprintf "%sCAML_DEBUG_SOCKET=%s %s %s"
+                     (get_unix_environment ())
                      !socket_name
                      (Filename.quote !program_name)
                      !arguments)

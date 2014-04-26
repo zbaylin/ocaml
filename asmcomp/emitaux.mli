@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Common functions for emitting assembly code *)
 
 val output_channel: out_channel ref
@@ -25,9 +23,12 @@ val emit_char: char -> unit
 val emit_string_literal: string -> unit
 val emit_string_directive: string -> string -> unit
 val emit_bytes_directive: string -> string -> unit
-val emit_float64_directive: string -> string -> unit
-val emit_float64_split_directive: string -> string -> unit
-val emit_float32_directive: string -> string -> unit
+val emit_float64_directive: string -> int64 -> unit
+val emit_float64_split_directive: string -> int64 -> unit
+val emit_float32_directive: string -> int32 -> unit
+
+val reset_debug_info: unit -> unit
+val emit_debug_info: Debuginfo.t -> unit
 
 type frame_descr =
   { fd_lbl: int;                        (* Return address *)
@@ -50,3 +51,7 @@ type emit_frame_actions =
 val emit_frames: emit_frame_actions -> unit
 
 val is_generic_function: string -> bool
+
+val cfi_startproc : unit -> unit
+val cfi_endproc : unit -> unit
+val cfi_adjust_cfa_offset : int -> unit

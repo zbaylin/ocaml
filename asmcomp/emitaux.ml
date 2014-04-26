@@ -10,14 +10,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Common functions for emitting assembly code *)
 
 open Debuginfo
-open Cmm
-open Reg
-open Linearize
 
 let output_channel = ref stdout
 
@@ -93,16 +88,10 @@ let emit_bytes_directive directive s =
    done;
    if !pos > 0 then emit_char '\n'
 
-(* PR#4813: assemblers do strange things with float literals indeed,
-   so we convert to IEEE representation ourselves and emit float
-   literals as 32- or 64-bit integers. *)
-
-let emit_float64_directive directive f =
-  let x = Int64.bits_of_float (float_of_string f) in
+let emit_float64_directive directive x =
   emit_printf "\t%s\t0x%Lx\n" directive x
 
-let emit_float64_split_directive directive f =
-  let x = Int64.bits_of_float (float_of_string f) in
+let emit_float64_split_directive directive x =
   let lo = Int64.logand x 0xFFFF_FFFFL
   and hi = Int64.shift_right_logical x 32 in
   emit_printf "\t%s\t0x%Lx, 0x%Lx\n"
@@ -110,8 +99,7 @@ let emit_float64_split_directive directive f =
     (if Arch.big_endian then hi else lo)
     (if Arch.big_endian then lo else hi)
 
-let emit_float32_directive directive f =
-  let x = Int32.bits_of_float (float_of_string f) in
+let emit_float32_directive directive x =
   emit_printf "\t%s\t0x%lx\n" directive x
 
 (* Record live pointers at call points *)
@@ -136,24 +124,22 @@ type emit_frame_actions =
 
 let emit_frames a =
   let filenames = Hashtbl.create 7 in
-  let lbl_filenames = ref 200000 in
   let label_filename name =
     try
       Hashtbl.find filenames name
     with Not_found ->
-      let lbl = !lbl_filenames in
+      let lbl = Linearize.new_label () in
       Hashtbl.add filenames name lbl;
-      incr lbl_filenames;
       lbl in
   let emit_frame fd =
     a.efa_label fd.fd_lbl;
-    a.efa_16 (if fd.fd_debuginfo == Debuginfo.none
+    a.efa_16 (if Debuginfo.is_none fd.fd_debuginfo
               then fd.fd_frame_size
               else fd.fd_frame_size + 1);
     a.efa_16 (List.length fd.fd_live_offset);
     List.iter a.efa_16 fd.fd_live_offset;
     a.efa_align Arch.size_addr;
-    if fd.fd_debuginfo != Debuginfo.none then begin
+    if not (Debuginfo.is_none fd.fd_debuginfo) then begin
       let d = fd.fd_debuginfo in
       let line = min 0xFFFFF d.dinfo_line
       and char_start = min 0xFF d.dinfo_char_start
@@ -189,3 +175,60 @@ let is_generic_function name =
   List.exists
     (fun p -> isprefix p name)
     ["caml_apply"; "caml_curry"; "caml_send"; "caml_tuplify"]
+
+(* CFI directives *)
+
+let is_cfi_enabled () =
+  Config.asm_cfi_supported
+
+let cfi_startproc () =
+  if is_cfi_enabled () then
+    emit_string "\t.cfi_startproc\n"
+
+let cfi_endproc () =
+  if is_cfi_enabled () then
+    emit_string "\t.cfi_endproc\n"
+
+let cfi_adjust_cfa_offset n =
+  if is_cfi_enabled () then
+  begin
+    emit_string "\t.cfi_adjust_cfa_offset\t"; emit_int n; emit_string "\n";
+  end
+
+(* Emit debug information *)
+
+(* This assoc list is expected to be very short *)
+let file_pos_nums =
+  (ref [] : (string * int) list ref)
+
+(* Number of files *)
+let file_pos_num_cnt = ref 1
+
+(* Reset debug state at beginning of asm file *)
+let reset_debug_info () =
+  file_pos_nums := [];
+  file_pos_num_cnt := 1
+
+(* We only diplay .file if the file has not been seen before. We
+   display .loc for every instruction. *)
+let emit_debug_info dbg =
+  if is_cfi_enabled () &&
+    (!Clflags.debug || Config.with_frame_pointers)
+     && dbg.Debuginfo.dinfo_line > 0 (* PR#6243 *)
+  then begin
+    let line = dbg.Debuginfo.dinfo_line in
+    let file_name = dbg.Debuginfo.dinfo_file in
+    let file_num =
+      try List.assoc file_name !file_pos_nums
+      with Not_found ->
+        let file_num = !file_pos_num_cnt in
+        incr file_pos_num_cnt;
+        emit_string "\t.file\t";
+        emit_int file_num; emit_char '\t';
+        emit_string_literal file_name; emit_char '\n';
+        file_pos_nums := (file_name,file_num) :: !file_pos_nums;
+        file_num in
+    emit_string "\t.loc\t";
+    emit_int file_num; emit_char '\t';
+    emit_int line; emit_char '\n'
+  end

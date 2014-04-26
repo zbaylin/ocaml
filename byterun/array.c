@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Operations on arrays */
 
 #include <string.h>
@@ -135,6 +133,27 @@ CAMLprim value caml_array_unsafe_set(value array, value index, value newval)
     return caml_array_unsafe_set_float(array, index, newval);
   else
     return caml_array_unsafe_set_addr(array, index, newval);
+}
+
+CAMLprim value caml_make_float_vect(value len)
+{
+  mlsize_t wosize = Long_val(len) * Double_wosize;
+  value result;
+  if (wosize == 0)
+    return Atom(0);
+  else if (wosize <= Max_young_wosize){
+#define Setup_for_gc
+#define Restore_after_gc
+    Alloc_small (result, wosize, Double_array_tag);
+#undef Setup_for_gc
+#undef Restore_after_gc
+  }else if (wosize > Max_wosize)
+    caml_invalid_argument("Array.make_float");
+  else {
+    result = caml_alloc_shr (wosize, Double_array_tag);
+    result = caml_check_urgent_gc (result);
+  }
+  return result;
 }
 
 CAMLprim value caml_make_vect(value len, value init)
@@ -321,11 +340,12 @@ static value caml_array_gather(intnat num_arrays,
            count--, src++, pos++) {
         caml_initialize(&Field(res, pos), *src);
       }
-      /* Many caml_initialize in a row can create a lot of old-to-young
-         refs.  Give the minor GC a chance to run if it needs to. */
-      res = caml_check_urgent_gc(res);
     }
     Assert(pos == size);
+
+    /* Many caml_initialize in a row can create a lot of old-to-young
+       refs.  Give the minor GC a chance to run if it needs to. */
+    res = caml_check_urgent_gc(res);
   }
   CAMLreturn (res);
 }

@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 #ifndef CAML_GC_CTRL_H
 #define CAML_GC_CTRL_H
 
@@ -30,6 +28,8 @@ extern intnat
      caml_stat_top_heap_size,
      caml_stat_compactions,
      caml_stat_heap_chunks;
+
+uintnat caml_normalize_heap_increment (uintnat);
 
 void caml_init_gc (uintnat, uintnat, uintnat,
                    uintnat, uintnat);

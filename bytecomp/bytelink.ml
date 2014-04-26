@@ -10,24 +10,22 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Link a set of .cmo files and produce a bytecode executable. *)
 
-open Sys
 open Misc
 open Config
-open Instruct
 open Cmo_format
 
 type error =
     File_not_found of string
   | Not_an_object_file of string
+  | Wrong_object_name of string
   | Symbol_error of string * Symtable.error
   | Inconsistent_import of string * string * string
   | Custom_runtime
   | File_exists of string
   | Cannot_open_dll of string
+  | Not_compatible_32
 
 exception Error of error
 
@@ -115,8 +113,7 @@ let scan_file obj_name tolink =
       raise(Error(File_not_found obj_name)) in
   let ic = open_in_bin file_name in
   try
-    let buffer = String.create (String.length cmo_magic_number) in
-    really_input ic buffer 0 (String.length cmo_magic_number);
+    let buffer = input_bytes ic (String.length cmo_magic_number) in
     if buffer = cmo_magic_number then begin
       (* This is a .cmo file. It must be linked in any case.
          Read the relocation information to see which modules it
@@ -161,9 +158,10 @@ let scan_file obj_name tolink =
 (* Consistency check between interfaces *)
 
 let crc_interfaces = Consistbl.create ()
+let implementations_defined = ref ([] : (string * string) list)
 
-let check_consistency file_name cu =
-  try
+let check_consistency ppf file_name cu =
+  begin try
     List.iter
       (fun (name, crc) ->
         if name = cu.cu_name
@@ -172,38 +170,47 @@ let check_consistency file_name cu =
       cu.cu_imports
   with Consistbl.Inconsistency(name, user, auth) ->
     raise(Error(Inconsistent_import(name, user, auth)))
+  end;
+  begin try
+    let source = List.assoc cu.cu_name !implementations_defined in
+    Location.print_warning (Location.in_file file_name) ppf
+      (Warnings.Multiple_definition(cu.cu_name,
+                                    Location.show_filename file_name,
+                                    Location.show_filename source))
+  with Not_found -> ()
+  end;
+  implementations_defined :=
+    (cu.cu_name, file_name) :: !implementations_defined
 
 let extract_crc_interfaces () =
   Consistbl.extract crc_interfaces
 
 (* Record compilation events *)
 
-let debug_info = ref ([] : (int * string) list)
+let debug_info = ref ([] : (int * LongString.t) list)
 
 (* Link in a compilation unit *)
 
-let link_compunit output_fun currpos_fun inchan file_name compunit =
-  check_consistency file_name compunit;
+let link_compunit ppf output_fun currpos_fun inchan file_name compunit =
+  check_consistency ppf file_name compunit;
   seek_in inchan compunit.cu_pos;
-  let code_block = String.create compunit.cu_codesize in
-  really_input inchan code_block 0 compunit.cu_codesize;
-  Symtable.patch_object code_block compunit.cu_reloc;
+  let code_block = LongString.input_bytes inchan compunit.cu_codesize in
+  Symtable.ls_patch_object code_block compunit.cu_reloc;
   if !Clflags.debug && compunit.cu_debug > 0 then begin
     seek_in inchan compunit.cu_debug;
-    let buffer = String.create compunit.cu_debugsize in
-    really_input inchan buffer 0 compunit.cu_debugsize;
+    let buffer = LongString.input_bytes inchan compunit.cu_debugsize in
     debug_info := (currpos_fun(), buffer) :: !debug_info
   end;
-  output_fun code_block;
+  Array.iter output_fun code_block;
   if !Clflags.link_everything then
     List.iter Symtable.require_primitive compunit.cu_primitives
 
 (* Link in a .cmo file *)
 
-let link_object output_fun currpos_fun file_name compunit =
+let link_object ppf output_fun currpos_fun file_name compunit =
   let inchan = open_in_bin file_name in
   try
-    link_compunit output_fun currpos_fun inchan file_name compunit;
+    link_compunit ppf output_fun currpos_fun inchan file_name compunit;
     close_in inchan
   with
     Symtable.Error msg ->
@@ -213,14 +220,14 @@ let link_object output_fun currpos_fun file_name compunit =
 
 (* Link in a .cma file *)
 
-let link_archive output_fun currpos_fun file_name units_required =
+let link_archive ppf output_fun currpos_fun file_name units_required =
   let inchan = open_in_bin file_name in
   try
     List.iter
       (fun cu ->
          let name = file_name ^ "(" ^ cu.cu_name ^ ")" in
          try
-           link_compunit output_fun currpos_fun inchan name cu
+           link_compunit ppf output_fun currpos_fun inchan name cu
          with Symtable.Error msg ->
            raise(Error(Symbol_error(name, msg))))
       units_required;
@@ -229,11 +236,11 @@ let link_archive output_fun currpos_fun file_name units_required =
 
 (* Link in a .cmo or .cma file *)
 
-let link_file output_fun currpos_fun = function
+let link_file ppf output_fun currpos_fun = function
     Link_object(file_name, unit) ->
-      link_object output_fun currpos_fun file_name unit
+      link_object ppf output_fun currpos_fun file_name unit
   | Link_archive(file_name, units) ->
-      link_archive output_fun currpos_fun file_name units
+      link_archive ppf output_fun currpos_fun file_name units
 
 (* Output the debugging information *)
 (* Format is:
@@ -247,7 +254,9 @@ let link_file output_fun currpos_fun = function
 let output_debug_info oc =
   output_binary_int oc (List.length !debug_info);
   List.iter
-    (fun (ofs, evl) -> output_binary_int oc ofs; output_string oc evl)
+    (fun (ofs, evl) ->
+      output_binary_int oc ofs;
+      Array.iter (output_string oc) evl)
     !debug_info;
   debug_info := []
 
@@ -265,7 +274,13 @@ let make_absolute file =
 
 (* Create a bytecode executable file *)
 
-let link_bytecode tolink exec_name standalone =
+let link_bytecode ppf tolink exec_name standalone =
+  (* Avoid the case where the specified exec output file is the same as
+     one of the objects to be linked *)
+  List.iter (function
+    | Link_object(file_name, _) when file_name = exec_name ->
+      raise (Error (Wrong_object_name exec_name));
+    | _ -> ()) tolink;
   Misc.remove_file exec_name; (* avoid permission problems, cf PR#1911 *)
   let outchan =
     open_out_gen [Open_wronly; Open_trunc; Open_creat; Open_binary]
@@ -294,7 +309,8 @@ let link_bytecode tolink exec_name standalone =
     Symtable.init();
     Consistbl.clear crc_interfaces;
     let sharedobjs = List.map Dll.extract_dll_name !Clflags.dllibs in
-    if standalone then begin
+    let check_dlls = standalone && Config.target = Config.host in
+    if check_dlls then begin
       (* Initialize the DLL machinery *)
       Dll.init_compile !Clflags.no_std_include;
       Dll.add_path !load_path;
@@ -303,8 +319,8 @@ let link_bytecode tolink exec_name standalone =
     end;
     let output_fun = output_string outchan
     and currpos_fun () = pos_out outchan - start_code in
-    List.iter (link_file output_fun currpos_fun) tolink;
-    if standalone then Dll.close_all_dlls();
+    List.iter (link_file ppf output_fun currpos_fun) tolink;
+    if check_dlls then Dll.close_all_dlls();
     (* The final STOP instruction *)
     output_byte outchan Opcodes.opSTOP;
     output_byte outchan 0; output_byte outchan 0; output_byte outchan 0;
@@ -322,7 +338,13 @@ let link_bytecode tolink exec_name standalone =
     Symtable.output_primitive_names outchan;
     Bytesections.record outchan "PRIM";
     (* The table of global data *)
-    output_value outchan (Symtable.initial_global_table());
+    begin try
+      Marshal.to_channel outchan (Symtable.initial_global_table())
+          (if !Clflags.bytecode_compatible_32
+           then [Marshal.Compat_32] else [])
+    with Failure _ ->
+      raise (Error Not_compatible_32)
+    end;
     Bytesections.record outchan "DATA";
     (* The map of global identifiers *)
     Symtable.output_global_map outchan;
@@ -402,7 +424,7 @@ let output_cds_file outfile =
 
 (* Output a bytecode executable as a C file *)
 
-let link_bytecode_as_c tolink outfile =
+let link_bytecode_as_c ppf tolink outfile =
   let outchan = open_out outfile in
   begin try
     (* The bytecode *)
@@ -424,7 +446,7 @@ let link_bytecode_as_c tolink outfile =
       output_code_string outchan code;
       currpos := !currpos + String.length code
     and currpos_fun () = !currpos in
-    List.iter (link_file output_fun currpos_fun) tolink;
+    List.iter (link_file ppf output_fun currpos_fun) tolink;
     (* The final STOP instruction *)
     Printf.fprintf outchan "\n0x%x};\n\n" Opcodes.opSTOP;
     (* The table of global data *)
@@ -458,6 +480,7 @@ let link_bytecode_as_c tolink outfile =
     close_out outchan
   with x ->
     close_out outchan;
+    remove_file outfile;
     raise x
   end;
   if !Clflags.debug then
@@ -491,22 +514,23 @@ let fix_exec_name name =
 
 (* Main entry point (build a custom runtime if needed) *)
 
-let link objfiles output_name =
+let link ppf objfiles output_name =
   let objfiles =
     if !Clflags.nopervasives then objfiles
     else if !Clflags.output_c_object then "stdlib.cma" :: objfiles
     else "stdlib.cma" :: (objfiles @ ["std_exit.cmo"]) in
   let tolink = List.fold_right scan_file objfiles [] in
   Clflags.ccobjs := !Clflags.ccobjs @ !lib_ccobjs; (* put user's libs last *)
-  Clflags.ccopts := !lib_ccopts @ !Clflags.ccopts; (* put user's opts first *)
+  Clflags.all_ccopts := !lib_ccopts @ !Clflags.all_ccopts;
+                                                   (* put user's opts first *)
   Clflags.dllibs := !lib_dllibs @ !Clflags.dllibs; (* put user's DLLs first *)
   if not !Clflags.custom_runtime then
-    link_bytecode tolink output_name true
+    link_bytecode ppf tolink output_name true
   else if not !Clflags.output_c_object then begin
     let bytecode_name = Filename.temp_file "camlcode" "" in
     let prim_name = Filename.temp_file "camlprim" ".c" in
     try
-      link_bytecode tolink bytecode_name false;
+      link_bytecode ppf tolink bytecode_name false;
       let poc = open_out prim_name in
       output_string poc "\
         #ifdef __cplusplus\n\
@@ -544,7 +568,7 @@ let link objfiles output_name =
     if Sys.file_exists c_file then raise(Error(File_exists c_file));
     let temps = ref [] in
     try
-      link_bytecode_as_c tolink c_file;
+      link_bytecode_as_c ppf tolink c_file;
       if not (Filename.check_suffix output_name ".c") then begin
         temps := c_file :: !temps;
         if Ccomp.compile_file c_file <> 0 then raise(Error Custom_runtime);
@@ -570,20 +594,38 @@ open Format
 
 let report_error ppf = function
   | File_not_found name ->
-      fprintf ppf "Cannot find file %s" name
+      fprintf ppf "Cannot find file %a" Location.print_filename name
   | Not_an_object_file name ->
-      fprintf ppf "The file %s is not a bytecode object file" name
+      fprintf ppf "The file %a is not a bytecode object file"
+        Location.print_filename name
+  | Wrong_object_name name ->
+      fprintf ppf "The output file %s has the wrong name. The extension implies\
+                  \ an object file but the link step was requested" name
   | Symbol_error(name, err) ->
-      fprintf ppf "Error while linking %s:@ %a" name
+      fprintf ppf "Error while linking %a:@ %a" Location.print_filename name
       Symtable.report_error err
   | Inconsistent_import(intf, file1, file2) ->
       fprintf ppf
-        "@[<hov>Files %s@ and %s@ \
+        "@[<hov>Files %a@ and %a@ \
                  make inconsistent assumptions over interface %s@]"
-        file1 file2 intf
+        Location.print_filename file1
+        Location.print_filename file2
+        intf
   | Custom_runtime ->
       fprintf ppf "Error while building custom runtime system"
   | File_exists file ->
-      fprintf ppf "Cannot overwrite existing file %s" file
+      fprintf ppf "Cannot overwrite existing file %a"
+        Location.print_filename file
   | Cannot_open_dll file ->
-      fprintf ppf "Error on dynamically loaded library: %s" file
+      fprintf ppf "Error on dynamically loaded library: %a"
+        Location.print_filename file
+  | Not_compatible_32 ->
+      fprintf ppf "Generated bytecode executable cannot be run\
+                  \ on a 32-bit platform"
+
+let () =
+  Location.register_error_of_exn
+    (function
+      | Error err -> Some (Location.error_of_printer_file report_error err)
+      | _ -> None
+    )

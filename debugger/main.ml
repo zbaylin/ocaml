@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Input_handling
 open Question
 open Command_line
@@ -28,10 +26,7 @@ open Primitives
 
 let line_buffer = Lexing.from_function read_user_input
 
-let rec loop ppf =
-  line_loop ppf line_buffer;
-  if !loaded && (not (yes_or_no "The program is running. Quit anyway")) then
-    loop ppf
+let rec loop ppf = line_loop ppf line_buffer
 
 let current_duration = ref (-1L)
 
@@ -74,7 +69,8 @@ let rec protect ppf restart loop =
       protect ppf restart (function ppf ->
         let b =
           if !current_duration = -1L then begin
-            let msg = sprintf "Restart from time %Ld and try to get closer of the problem" time in
+            let msg = sprintf "Restart from time %Ld and try to get \
+                               closer of the problem" time in
             stop_user_input ();
             if yes_or_no msg then
               (current_duration := init_duration; true)
@@ -171,10 +167,12 @@ let speclist = [
       "<count>  Set max number of checkpoints kept";
    "-cd", Arg.String set_directory,
       "<dir>  Change working directory";
-   "-emacs", Arg.Set emacs,
-      "For running the debugger under emacs";
+   "-emacs", Arg.Tuple [Arg.Set emacs; Arg.Set machine_readable],
+      "For running the debugger under emacs; implies -machine-readable";
    "-I", Arg.String add_include,
       "<dir>  Add <dir> to the list of include directories";
+   "-machine-readable", Arg.Set machine_readable,
+      "Print information in a format more suitable for machines";
    "-s", Arg.String set_socket,
       "<filename>  Set the name of the communication socket";
    "-version", Arg.Unit print_version,
@@ -183,7 +181,11 @@ let speclist = [
       " Print version number and exit";
    ]
 
+let function_placeholder () =
+  raise Not_found
+
 let main () =
+  Callback.register "Debugger.function_placeholder" function_placeholder;
   try
     socket_name :=
       (match Sys.os_type with
@@ -218,6 +220,11 @@ let main () =
   | Env.Error e ->
       eprintf "Debugger [version %s] environment error:@ @[@;" Config.version;
       Env.report_error err_formatter e;
+      eprintf "@]@.";
+      exit 2
+  | Cmi_format.Error e ->
+      eprintf "Debugger [version %s] environment error:@ @[@;" Config.version;
+      Cmi_format.report_error err_formatter e;
       eprintf "@]@.";
       exit 2
 

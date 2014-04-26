@@ -10,8 +10,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* A simple parser for C-- */
 
 %{
@@ -110,7 +108,7 @@ let access_array base numelt size =
 %token OR
 %token <int> POINTER
 %token PROJ
-%token RAISE
+%token <Lambda.raise_kind> RAISE
 %token RBRACKET
 %token RPAREN
 %token SEQ
@@ -149,7 +147,8 @@ phrase:
 fundecl:
     LPAREN FUNCTION STRING LPAREN params RPAREN sequence RPAREN
       { List.iter (fun (id, ty) -> unbind_ident id) $5;
-        {fun_name = $3; fun_args = $5; fun_body = $7; fun_fast = true} }
+        {fun_name = $3; fun_args = $5; fun_body = $7; fun_fast = true;
+         fun_dbg = Debuginfo.none} }
 ;
 params:
     oneparam params     { $1 :: $2 }
@@ -173,7 +172,7 @@ componentlist:
 ;
 expr:
     INTCONST    { Cconst_int $1 }
-  | FLOATCONST  { Cconst_float $1 }
+  | FLOATCONST  { Cconst_float (float_of_string $1) }
   | STRING      { Cconst_symbol $1 }
   | POINTER     { Cconst_pointer $1 }
   | IDENT       { Cvar(find_ident $1) }
@@ -248,7 +247,7 @@ unaryop:
   | ALLOC                       { Calloc }
   | FLOATOFINT                  { Cfloatofint }
   | INTOFFLOAT                  { Cintoffloat }
-  | RAISE                       { Craise Debuginfo.none }
+  | RAISE                       { Craise ($1, Debuginfo.none) }
   | ABSF                        { Cabsf }
 ;
 binaryop:
@@ -317,11 +316,10 @@ dataitem:
   | BYTE INTCONST               { Cint8 $2 }
   | HALF INTCONST               { Cint16 $2 }
   | INT INTCONST                { Cint(Nativeint.of_int $2) }
-  | FLOAT FLOATCONST            { Cdouble $2 }
+  | FLOAT FLOATCONST            { Cdouble (float_of_string $2) }
   | ADDR STRING                 { Csymbol_address $2 }
   | ADDR INTCONST               { Clabel_address $2 }
   | KSTRING STRING              { Cstring $2 }
   | SKIP INTCONST               { Cskip $2 }
   | ALIGN INTCONST              { Calign $2 }
 ;
-

@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (** Memory management control and statistics; finalised values. *)
 
 type stat =
@@ -88,8 +86,11 @@ type control =
        this parameter will trigger a minor collection.  Default: 32k. *)
 
     mutable major_heap_increment : int;
-    (** The minimum number of words to add to the
-       major heap when increasing it.  Default: 124k. *)
+    (** How much to add to the major heap when increasing it. If this
+        number is less than or equal to 1000, it is a percentage of
+        the current heap size (i.e. setting it to 100 will double the heap
+        size at each increase). If it is more than 1000, it is a fixed
+        number of words that will be added to the heap. Default: 15. *)
 
     mutable space_overhead : int;
     (** The major GC speed is computed from this parameter.
@@ -158,7 +159,7 @@ external quick_stat : unit -> stat = "caml_gc_quick_stat"
 
 external counters : unit -> float * float * float = "caml_gc_counters"
 (** Return [(minor_words, promoted_words, major_words)].  This function
-    is as fast at [quick_stat]. *)
+    is as fast as [quick_stat]. *)
 
 external get : unit -> control = "caml_gc_get"
 (** Return the current values of the GC parameters in a [control] record. *)

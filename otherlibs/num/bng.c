@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: bng.c 11156 2011-07-27 14:17:02Z doligez $ */
 
 #include "bng.h"
 #include "config.h"
@@ -23,12 +23,10 @@
 #include "bng_amd64.c"
 #elif defined(BNG_ARCH_ppc)
 #include "bng_ppc.c"
-#elif defined (BNG_ARCH_alpha)
-#include "bng_alpha.c"
 #elif defined (BNG_ARCH_sparc)
 #include "bng_sparc.c"
-#elif defined (BNG_ARCH_mips)
-#include "bng_mips.c"
+#elif defined (BNG_ARCH_arm64)
+#include "bng_arm64.c"
 #endif
 #endif
 

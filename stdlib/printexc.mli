@@ -11,9 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
-(** Facilities for printing exceptions. *)
+(** Facilities for printing exceptions and inspecting current call stack. *)
 
 val to_string: exn -> string
 (** [Printexc.to_string e] returns a string representation of
@@ -83,4 +81,67 @@ val register_printer: (exn -> string option) -> unit
     itself. Practically, it means that the code related to [fn] should not use
     the backtrace if it has itself raised an exception before.
     @since 3.11.2
+*)
+
+(** {6 Raw backtraces} *)
+
+type raw_backtrace
+
+(** The abstract type [backtrace] stores exception backtraces in
+    a low-level format, instead of directly exposing them as string as
+    the [get_backtrace()] function does.
+
+    This allows delaying the formatting of backtraces to when they are
+    actually printed, which might be useful if you record more
+    backtraces than you print.
+*)
+
+val get_raw_backtrace: unit -> raw_backtrace
+val print_raw_backtrace: out_channel -> raw_backtrace -> unit
+val raw_backtrace_to_string: raw_backtrace -> string
+
+(** {6 Uncaught exceptions} *)
+
+val set_uncaught_exception_handler: (exn -> raw_backtrace -> unit) -> unit
+(** [Printexc.set_uncaught_exception_handler fn] registers [fn] as the handler
+    for uncaught exceptions. The default handler prints the exception and
+    backtrace on standard error output.
+
+    Note that when [fn] is called all the functions registered with
+    {!Pervasives.at_exit} have already been called. Because of this you must
+    make sure any output channel [fn] writes on is flushed.
+
+    If [fn] raises an exception, it is ignored.
+
+    @since 4.02.0
+*)
+
+(** {6 Current call stack} *)
+
+val get_callstack: int -> raw_backtrace
+
+(** [Printexc.get_callstack n] returns a description of the top of the
+    call stack on the current program point (for the current thread),
+    with at most [n] entries.  (Note: this function is not related to
+    exceptions at all, despite being part of the [Printexc] module.)
+
+    @since 4.01.0
+*)
+
+
+(** {6 Exception slots} *)
+
+val exn_slot_id: exn -> int
+(** [Printexc.exn_slot_id] returns an integer which uniquely identifies
+    the constructor used to create the exception value [exn]
+    (in the current runtime).
+
+    @since 4.02.0
+*)
+
+val exn_slot_name: exn -> string
+(** [Printexc.exn_slot_id exn] returns the internal name of the constructor
+    used to create the exception value [exn].
+
+    @since 4.02.0
 *)

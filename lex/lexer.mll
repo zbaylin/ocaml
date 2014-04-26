@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* The lexical analyzer for lexer definitions. Bootstrapped! *)
 
 {
@@ -32,14 +30,15 @@ let string_buff = Buffer.create 256
 let reset_string_buffer () = Buffer.clear string_buff
 
 let store_string_char c = Buffer.add_char string_buff c
+let store_string_chars s = Buffer.add_string string_buff s
 
 let get_stored_string () = Buffer.contents string_buff
 
 let char_for_backslash = function
-    'n' -> '\n'
-  | 't' -> '\t'
-  | 'b' -> '\b'
-  | 'r' -> '\r'
+    'n' -> '\010'
+  | 'r' -> '\013'
+  | 'b' -> '\008'
+  | 't' -> '\009'
   | c   -> c
 
 let raise_lexical_error lexbuf msg =
@@ -114,7 +113,7 @@ let identstart =
 let identbody =
   ['A'-'Z' 'a'-'z' '_' '\192'-'\214' '\216'-'\246' '\248'-'\255' '\'' '0'-'9']
 let backslash_escapes =
-  ['\\' '"' '\'' 'n' 't' 'b' 'r']
+  ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
 
 rule main = parse
     [' ' '\013' '\009' '\012' ] +
@@ -142,6 +141,7 @@ rule main = parse
       | "eof" -> Teof
       | "let" -> Tlet
       | "as"  -> Tas
+      | "refill" -> Trefill
       | s -> Tident s }
   | '"'
     { reset_string_buffer();
@@ -168,12 +168,13 @@ rule main = parse
     }
   | '{'
     { let p = Lexing.lexeme_end_p lexbuf in
+      let f = p.Lexing.pos_fname in
       let n1 = p.Lexing.pos_cnum
       and l1 = p.Lexing.pos_lnum
       and s1 = p.Lexing.pos_bol in
       brace_depth := 1;
       let n2 = handle_lexical_error action lexbuf in
-      Taction({start_pos = n1; end_pos = n2;
+      Taction({loc_file = f; start_pos = n1; end_pos = n2;
                start_line = l1; start_col = n1 - s1}) }
   | '='  { Tequal }
   | '|'  { Tor }
@@ -198,7 +199,7 @@ rule main = parse
 and string = parse
     '"'
     { () }
-   | '\\' ("\010" | "\013" | "\013\010") ([' ' '\009'] * as spaces)
+   | '\\' ('\013'* '\010') ([' ' '\009'] * as spaces)
     { incr_loc lexbuf (String.length spaces);
       string lexbuf }
   | '\\' (backslash_escapes as c)
@@ -209,7 +210,7 @@ and string = parse
       if in_pattern () && v > 255 then
        warning lexbuf
         (Printf.sprintf
-          "illegal backslash escape in string: `\\%c%c%c'" c d u) ;
+          "illegal backslash escape in string: '\\%c%c%c'" c d u) ;
       store_string_char (Char.chr v);
       string lexbuf }
  | '\\' 'x' (['0'-'9' 'a'-'f' 'A'-'F'] as d) (['0'-'9' 'a'-'f' 'A'-'F'] as u)
@@ -218,14 +219,15 @@ and string = parse
   | '\\' (_ as c)
     {if in_pattern () then
        warning lexbuf
-        (Printf.sprintf "illegal backslash escape in string: `\\%c'" c) ;
+        (Printf.sprintf "illegal backslash escape in string: '\\%c'" c) ;
       store_string_char '\\' ;
       store_string_char c ;
       string lexbuf }
   | eof
     { raise(Lexical_error("unterminated string", "", 0, 0)) }
-  | '\010'
-    { store_string_char '\010';
+  | '\013'* '\010' as s
+    { warning lexbuf (Printf.sprintf "unescaped newline in string") ;
+      store_string_chars s;
       incr_loc lexbuf 0;
       string lexbuf }
   | _ as c

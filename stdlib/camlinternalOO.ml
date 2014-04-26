@@ -11,26 +11,17 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Obj
 
 (**** Object representation ****)
 
-let last_id = ref 0
-let () = Callback.register "CamlinternalOO.last_id" last_id
-
-let set_id o id =
-  let id0 = !id in
-  Array.unsafe_set (Obj.magic o : int array) 1 id0;
-  id := id0 + 1
+external set_id: 'a -> 'a = "caml_set_oo_id" "noalloc"
 
 (**** Object copy ****)
 
 let copy o =
   let o = (Obj.obj (Obj.dup (Obj.repr o))) in
-  set_id o last_id;
-  o
+  set_id o
 
 (**** Compression options ****)
 (* Parameters *)
@@ -58,6 +49,7 @@ let initial_object_size = 2
 (**** Items ****)
 
 type item = DummyA | DummyB | DummyC of int
+let _ = [DummyA; DummyB; DummyC 0] (* to avoid warnings *)
 
 let dummy_item = (magic () : item)
 
@@ -67,6 +59,8 @@ type tag
 type label = int
 type closure = item
 type t = DummyA | DummyB | DummyC of int
+let _ = [DummyA; DummyB; DummyC 0] (* to avoid warnings *)
+
 type obj = t array
 external ret : (obj -> 'a) -> closure = "%identity"
 
@@ -86,12 +80,15 @@ let public_method_label s : tag =
 
 (**** Sparse array ****)
 
-module Vars = Map.Make(struct type t = string let compare = compare end)
+module Vars =
+  Map.Make(struct type t = string let compare (x:t) y = compare x y end)
 type vars = int Vars.t
 
-module Meths = Map.Make(struct type t = string let compare = compare end)
+module Meths =
+  Map.Make(struct type t = string let compare (x:t) y = compare x y end)
 type meths = label Meths.t
-module Labs = Map.Make(struct type t = label let compare = compare end)
+module Labs =
+  Map.Make(struct type t = label let compare (x:t) y = compare x y end)
 type labs = bool Labs.t
 
 (* The compiler assumes that the first field of this structure is [size]. *)
@@ -289,7 +286,8 @@ let add_initializer table f =
   table.initializers <- f::table.initializers
 
 (*
-module Keys = Map.Make(struct type t = tag array let compare = compare end)
+module Keys =
+  Map.Make(struct type t = tag array let compare (x:t) y = compare x y end)
 let key_map = ref Keys.empty
 let get_key tags : item =
   try magic (Keys.find tags !key_map : tag array)
@@ -354,8 +352,7 @@ let create_object table =
   let obj = Obj.new_block Obj.object_tag table.size in
   (* XXX Appel de [caml_modify] *)
   Obj.set_field obj 0 (Obj.repr table.methods);
-  set_id obj last_id;
-  (Obj.obj obj)
+  Obj.obj (set_id obj)
 
 let create_object_opt obj_0 table =
   if (Obj.magic obj_0 : bool) then obj_0 else begin
@@ -363,8 +360,7 @@ let create_object_opt obj_0 table =
     let obj = Obj.new_block Obj.object_tag table.size in
     (* XXX Appel de [caml_modify] *)
     Obj.set_field obj 0 (Obj.repr table.methods);
-    set_id obj last_id;
-    (Obj.obj obj)
+    Obj.obj (set_id obj)
   end
 
 let rec iter_f obj =
@@ -407,9 +403,12 @@ type tables = Empty | Cons of closure * tables * tables
 type mut_tables =
     {key: closure; mutable data: tables; mutable next: tables}
 external mut : tables -> mut_tables = "%identity"
+external demut : mut_tables -> tables = "%identity"
 
 let build_path n keys tables =
-  let res = Cons (Obj.magic 0, Empty, Empty) in
+  (* Be careful not to create a seemingly immutable block, otherwise it could
+     be statically allocated.  See #5779. *)
+  let res = demut {key = Obj.magic 0; data = Empty; next = Empty} in
   let r = ref res in
   for i = 0 to n do
     r := Cons (keys.(i), !r, Empty)

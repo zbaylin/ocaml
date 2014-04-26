@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Pretty-printing of pseudo machine code *)
 
 open Format
@@ -20,8 +18,8 @@ open Reg
 open Mach
 
 let reg ppf r =
-  if String.length r.name > 0 then
-    fprintf ppf "%s" r.name
+  if not (Reg.anonymous r) then
+    fprintf ppf "%s" (Reg.name r)
   else
     fprintf ppf "%s" (match r.typ with Addr -> "A" | Int -> "I" | Float -> "F");
   fprintf ppf "/%i" r.stamp;
@@ -72,6 +70,7 @@ let intop = function
   | Iadd -> " + "
   | Isub -> " - "
   | Imul -> " * "
+  | Imulh -> " *h "
   | Idiv -> " div "
   | Imod -> " mod "
   | Iand -> " & "
@@ -104,8 +103,9 @@ let operation op arg ppf res =
   | Imove -> regs ppf arg
   | Ispill -> fprintf ppf "%a (spill)" regs arg
   | Ireload -> fprintf ppf "%a (reload)" regs arg
-  | Iconst_int n -> fprintf ppf "%s" (Nativeint.to_string n)
-  | Iconst_float s -> fprintf ppf "%s" s
+  | Iconst_int n
+  | Iconst_blockheader n -> fprintf ppf "%s" (Nativeint.to_string n)
+  | Iconst_float f -> fprintf ppf "%F" f
   | Iconst_symbol s -> fprintf ppf "\"%s\"" s
   | Icall_ind -> fprintf ppf "call %a" regs arg
   | Icall_imm lbl -> fprintf ppf "call \"%s\" %a" lbl regs arg
@@ -113,7 +113,7 @@ let operation op arg ppf res =
   | Itailcall_imm lbl -> fprintf ppf "tailcall \"%s\" %a" lbl regs arg
   | Iextcall(lbl, alloc) ->
       fprintf ppf "extcall \"%s\" %a%s" lbl regs arg
-      (if not alloc then "" else " (noalloc)")
+      (if alloc then "" else " (noalloc)")
   | Istackoffset n ->
       fprintf ppf "offset stack %i" n
   | Iload(chunk, addr) ->
@@ -180,19 +180,24 @@ let rec instr ppf i =
   | Itrywith(body, handler) ->
       fprintf ppf "@[<v 2>try@,%a@;<0 -2>with@,%a@;<0 -2>endtry@]"
              instr body instr handler
-  | Iraise ->
-      fprintf ppf "raise %a" reg i.arg.(0)
+  | Iraise k ->
+      fprintf ppf "%s %a" (Lambda.raise_kind k) reg i.arg.(0)
   end;
-  if i.dbg != Debuginfo.none then
-    fprintf ppf " %s" (Debuginfo.to_string i.dbg);
+  if not (Debuginfo.is_none i.dbg) then
+    fprintf ppf "%s" (Debuginfo.to_string i.dbg);
   begin match i.next.desc with
     Iend -> ()
   | _ -> fprintf ppf "@,%a" instr i.next
   end
 
 let fundecl ppf f =
-  fprintf ppf "@[<v 2>%s(%a)@,%a@]"
-    f.fun_name regs f.fun_args instr f.fun_body
+  let dbg =
+    if Debuginfo.is_none f.fun_dbg then
+      ""
+    else
+      " " ^ Debuginfo.to_string f.fun_dbg in
+  fprintf ppf "@[<v 2>%s(%a)%s@,%a@]"
+    f.fun_name regs f.fun_args dbg instr f.fun_body
 
 let phase msg ppf f =
   fprintf ppf "*** %s@.%a@." msg fundecl f

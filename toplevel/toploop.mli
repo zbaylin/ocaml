@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Format
 
 (* Accessors for the table of toplevel value bindings.  These functions
@@ -41,6 +39,7 @@ type directive_fun =
    | Directive_int of (int -> unit)
    | Directive_ident of (Longident.t -> unit)
    | Directive_bool of (bool -> unit)
+   | Directive_generic of (Parsetree.directive_argument list -> unit)
 
 val directive_table : (string, directive_fun) Hashtbl.t
         (* Table of known directives, with their execution function *)
@@ -57,10 +56,12 @@ val execute_phrase : bool -> formatter -> Parsetree.toplevel_phrase -> bool
            should be printed. Uncaught exceptions are always printed. *)
 val use_file : formatter -> string -> bool
 val use_silently : formatter -> string -> bool
+val mod_use_file : formatter -> string -> bool
         (* Read and execute commands from a file.
            [use_file] prints the types and values of the results.
-           [use_silently] does not print them. *)
-val eval_path: Path.t -> Obj.t
+           [use_silently] does not print them.
+           [mod_use_file] wrap the file contents into a module. *)
+val eval_path: Env.t -> Path.t -> Obj.t
         (* Return the toplevel object referred to by the given path *)
 
 (* Printing of values *)

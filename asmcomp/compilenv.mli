@@ -10,11 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Compilation environments for compilation units *)
 
-open Clambda
 open Cmx_format
 
 val reset: ?packname:string -> string -> unit
@@ -33,6 +30,10 @@ val make_symbol: ?unitname:string -> string option -> string
            [make_symbol ~unitname:u (Some id)] returns the asm symbol that
            corresponds to symbol [id] in the compilation unit [u]
            (or the current unit). *)
+
+val symbol_in_current_unit: string -> bool
+        (* Return true if the given asm symbol belongs to the
+           current compilation unit, false otherwise. *)
 
 val symbol_for_global: Ident.t -> string
         (* Return the asm symbol that refers to the given global identifier *)
@@ -53,11 +54,22 @@ val need_send_fun: int -> unit
 
 val new_const_symbol : unit -> string
 val new_const_label : unit -> int
-val new_structured_constant : Lambda.structured_constant -> bool -> string
-val structured_constants : unit -> (string * bool * Lambda.structured_constant) list
+
+val new_structured_constant:
+  Clambda.ustructured_constant ->
+  shared:bool -> (* can be shared with another structually equal constant *)
+  string
+val structured_constants:
+  unit -> (string * bool * Clambda.ustructured_constant) list
+val add_exported_constant: string -> unit
+
+type structured_constants
+val snapshot: unit -> structured_constants
+val backtrack: structured_constants -> unit
+
 
 val read_unit_info: string -> unit_infos * Digest.t
-        (* Read infos and CRC from a [.cmx] file. *)
+        (* Read infos and MD5 from a [.cmx] file. *)
 val write_unit_info: unit_infos -> string -> unit
         (* Save the given infos in the given file *)
 val save_unit_info: string -> unit
@@ -76,7 +88,7 @@ val read_library_info: string -> library_infos
 type error =
     Not_a_unit_info of string
   | Corrupted_unit_info of string
-  | Illegal_renaming of string * string
+  | Illegal_renaming of string * string * string
 
 exception Error of error
 

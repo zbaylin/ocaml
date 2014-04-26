@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 #include <mlvalues.h>
 #include <alloc.h>
 #include <memory.h>
@@ -24,7 +22,8 @@ static int msg_flag_table[] = {
   MSG_OOB, MSG_DONTROUTE, MSG_PEEK
 };
 
-CAMLprim value unix_recv(value sock, value buff, value ofs, value len, value flags)
+CAMLprim value unix_recv(value sock, value buff, value ofs, value len,
+                         value flags)
 {
   SOCKET s = Socket_val(sock);
   int flg = convert_flag_list(flags, msg_flag_table);
@@ -49,7 +48,8 @@ CAMLprim value unix_recv(value sock, value buff, value ofs, value len, value fla
   return Val_int(ret);
 }
 
-CAMLprim value unix_recvfrom(value sock, value buff, value ofs, value len, value flags)
+CAMLprim value unix_recvfrom(value sock, value buff, value ofs, value len,
+                             value flags)
 {
   SOCKET s = Socket_val(sock);
   int flg = convert_flag_list(flags, msg_flag_table);
@@ -83,7 +83,8 @@ CAMLprim value unix_recvfrom(value sock, value buff, value ofs, value len, value
   return res;
 }
 
-CAMLprim value unix_send(value sock, value buff, value ofs, value len, value flags)
+CAMLprim value unix_send(value sock, value buff, value ofs, value len,
+                         value flags)
 {
   SOCKET s = Socket_val(sock);
   int flg = convert_flag_list(flags, msg_flag_table);
@@ -106,7 +107,8 @@ CAMLprim value unix_send(value sock, value buff, value ofs, value len, value fla
   return Val_int(ret);
 }
 
-value unix_sendto_native(value sock, value buff, value ofs, value len, value flags, value dest)
+value unix_sendto_native(value sock, value buff, value ofs, value len,
+                         value flags, value dest)
 {
   SOCKET s = Socket_val(sock);
   int flg = convert_flag_list(flags, msg_flag_table);

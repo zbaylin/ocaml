@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (** Interface to the Unix system.
    To use as replacement to default {!Unix} module,
    add [module Unix = UnixLabels] in your implementation.
@@ -185,7 +183,8 @@ val wait : unit -> int * process_status
    and termination status. *)
 
 val waitpid : mode:wait_flag list -> int -> int * process_status
-(** Same as {!UnixLabels.wait}, but waits for the child process whose pid is given.
+(** Same as {!UnixLabels.wait}, but waits for the child process whose pid
+   is given.
    A pid of [-1] means wait for any child.
    A pid of [0] means wait for any child in the same process group
    as the current process.
@@ -237,10 +236,16 @@ type open_flag = Unix.open_flag =
   | O_TRUNC                     (** Truncate to 0 length if existing *)
   | O_EXCL                      (** Fail if existing *)
   | O_NOCTTY                    (** Don't make this dev a controlling tty *)
-  | O_DSYNC                     (** Writes complete as `Synchronised I/O data integrity completion' *)
-  | O_SYNC                      (** Writes complete as `Synchronised I/O file integrity completion' *)
-  | O_RSYNC                     (** Reads complete as writes (depending on O_SYNC/O_DSYNC) *)
-  | O_SHARE_DELETE              (** Windows only: allow the file to be deleted while still open *)
+  | O_DSYNC                     (** Writes complete as `Synchronised I/O data
+                                    integrity completion' *)
+  | O_SYNC                      (** Writes complete as `Synchronised I/O file
+                                    integrity completion' *)
+  | O_RSYNC                     (** Reads complete as writes (depending
+                                    on O_SYNC/O_DSYNC) *)
+  | O_SHARE_DELETE              (** Windows only: allow the file to be deleted
+                                    while still open *)
+  | O_CLOEXEC                   (** Set the close-on-exec flag on the
+                                   descriptor returned by {!openfile} *)
 (** The flags to {!UnixLabels.openfile}. *)
 
 
@@ -305,7 +310,8 @@ type seek_command = Unix.seek_command =
 
 
 val lseek : file_descr -> int -> mode:seek_command -> int
-(** Set the current position for a file descriptor *)
+(** Set the current position for a file descriptor, and return the resulting
+    offset (from the beginning of the file). *)
 
 val truncate : string -> len:int -> unit
 (** Truncates the named file to the given size. *)
@@ -770,9 +776,11 @@ val utimes : string -> access:float -> modif:float -> unit
 
 type interval_timer = Unix.interval_timer =
     ITIMER_REAL
-      (** decrements in real time, and sends the signal [SIGALRM] when expired.*)
+      (** decrements in real time, and sends the signal [SIGALRM] when
+          expired.*)
   | ITIMER_VIRTUAL
-      (**  decrements in process virtual time, and sends [SIGVTALRM] when expired. *)
+      (** decrements in process virtual time, and sends [SIGVTALRM] when
+          expired. *)
   | ITIMER_PROF
       (** (for profiling) decrements both when the process
          is running and when the system is running on behalf of the
@@ -1029,12 +1037,12 @@ type socket_bool_option =
    ([true]/[false]) value. *)
 
 type socket_int_option =
-    SO_SNDBUF      (** Size of send buffer *)
-  | SO_RCVBUF      (** Size of received buffer *)
-  | SO_ERROR       (** Deprecated.  Use {!Unix.getsockopt_error} instead. *)
-  | SO_TYPE        (** Report the socket type *)
-  | SO_RCVLOWAT    (** Minimum number of bytes to process for input operations *)
-  | SO_SNDLOWAT    (** Minimum number of bytes to process for output operations *)
+    SO_SNDBUF    (** Size of send buffer *)
+  | SO_RCVBUF    (** Size of received buffer *)
+  | SO_ERROR     (** Deprecated.  Use {!Unix.getsockopt_error} instead. *)
+  | SO_TYPE      (** Report the socket type *)
+  | SO_RCVLOWAT  (** Minimum number of bytes to process for input operations *)
+  | SO_SNDLOWAT  (** Minimum number of bytes to process for output operations *)
 (** The socket options that can be consulted with {!UnixLabels.getsockopt_int}
    and modified with {!UnixLabels.setsockopt_int}.  These options have an
    integer value. *)
@@ -1069,17 +1077,21 @@ val setsockopt_int : file_descr -> socket_int_option -> int -> unit
 (** Same as {!Unix.setsockopt} for an integer-valued socket option. *)
 
 val getsockopt_optint : file_descr -> socket_optint_option -> int option
-(** Same as {!Unix.getsockopt} for a socket option whose value is an [int option]. *)
+(** Same as {!Unix.getsockopt} for a socket option whose value is
+    an [int option]. *)
 
 val setsockopt_optint :
       file_descr -> socket_optint_option -> int option -> unit
-(** Same as {!Unix.setsockopt} for a socket option whose value is an [int option]. *)
+(** Same as {!Unix.setsockopt} for a socket option whose value is
+    an [int option]. *)
 
 val getsockopt_float : file_descr -> socket_float_option -> float
-(** Same as {!Unix.getsockopt} for a socket option whose value is a floating-point number. *)
+(** Same as {!Unix.getsockopt} for a socket option whose value is a
+    floating-point number. *)
 
 val setsockopt_float : file_descr -> socket_float_option -> float -> unit
-(** Same as {!Unix.setsockopt} for a socket option whose value is a floating-point number. *)
+(** Same as {!Unix.setsockopt} for a socket option whose value is a
+    floating-point number. *)
 
 val getsockopt_error : file_descr -> error option
 (** Return the error condition associated with the given socket,

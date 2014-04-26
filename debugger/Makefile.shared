@@ -10,11 +10,10 @@
 #                                                                       #
 #########################################################################
 
-# $Id$
-
 include ../config/Makefile
 
-CAMLC=../ocamlcomp.sh
+ROOTDIR=..
+CAMLC=$(ROOTDIR)/boot/ocamlrun $(ROOTDIR)/ocamlc -nostdlib -I $(ROOTDIR)/stdlib
 COMPFLAGS=-warn-error A $(INCLUDES)
 LINKFLAGS=-linkall -I $(UNIXDIR)
 CAMLYACC=../boot/ocamlyacc
@@ -22,6 +21,8 @@ YACCFLAGS=
 CAMLLEX=../boot/ocamlrun ../boot/ocamllex
 CAMLDEP=../boot/ocamlrun ../tools/ocamldep
 DEPFLAGS=$(INCLUDES)
+
+INSTALL_BINDIR=$(DESTDIR)$(BINDIR)
 
 INCLUDES=\
   -I ../utils -I ../parsing -I ../typing -I ../bytecomp -I ../toplevel \
@@ -32,11 +33,14 @@ OTHEROBJS=\
   ../utils/misc.cmo ../utils/config.cmo ../utils/tbl.cmo \
   ../utils/clflags.cmo ../utils/consistbl.cmo ../utils/warnings.cmo \
   ../parsing/location.cmo ../parsing/longident.cmo \
+  ../parsing/ast_helper.cmo ../parsing/ast_mapper.cmo \
   ../typing/ident.cmo ../typing/path.cmo ../typing/types.cmo \
   ../typing/btype.cmo ../typing/primitive.cmo ../typing/typedtree.cmo \
   ../typing/subst.cmo ../typing/predef.cmo \
-  ../typing/datarepr.cmo ../typing/env.cmo ../typing/oprint.cmo \
+  ../typing/datarepr.cmo ../typing/cmi_format.cmo ../typing/env.cmo \
+  ../typing/oprint.cmo \
   ../typing/ctype.cmo ../typing/printtyp.cmo ../typing/mtype.cmo \
+  ../typing/envaux.cmo \
   ../bytecomp/runtimedef.cmo ../bytecomp/bytesections.cmo \
   ../bytecomp/dll.cmo ../bytecomp/meta.cmo ../bytecomp/symtable.cmo \
   ../bytecomp/opcodes.cmo \
@@ -49,7 +53,6 @@ OBJS=\
 	primitives.cmo \
 	unix_tools.cmo \
 	debugger_config.cmo \
-	envaux.cmo \
 	parameters.cmo \
 	lexer.cmo \
 	input_handling.cmo \
@@ -83,7 +86,7 @@ ocamldebug$(EXE): $(OBJS) $(OTHEROBJS)
 	$(CAMLC) $(LINKFLAGS) -o ocamldebug$(EXE) -linkall $(OTHEROBJS) $(OBJS)
 
 install:
-	cp ocamldebug$(EXE) $(BINDIR)/ocamldebug$(EXE)
+	cp ocamldebug$(EXE) $(INSTALL_BINDIR)/ocamldebug$(EXE)
 
 clean::
 	rm -f ocamldebug$(EXE)

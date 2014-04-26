@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Miscellaneous parameters *)
 
 val program_name : string ref
@@ -25,3 +23,5 @@ val add_path_for : string -> string -> unit
 
 (* Used by emacs ? *)
 val emacs : bool ref
+
+val machine_readable : bool ref

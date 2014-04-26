@@ -10,18 +10,16 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* "Package" a set of .cmo files into one .cmo file having the
    original compilation units as sub-modules. *)
 
-val package_files: string list -> string -> unit
+val package_files: Format.formatter -> string list -> string -> unit
 
 type error =
     Forward_reference of string * Ident.t
   | Multiple_definition of string * Ident.t
   | Not_an_object_file of string
-  | Illegal_renaming of string * string
+  | Illegal_renaming of string * string * string
   | File_not_found of string
 
 exception Error of error

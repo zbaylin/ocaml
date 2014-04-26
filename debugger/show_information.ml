@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 open Instruct
 open Format
 open Debugcom
@@ -23,13 +21,14 @@ open Frames
 open Source
 open Show_source
 open Breakpoints
+open Parameters
 
 (* Display information about the current event. *)
 let show_current_event ppf =
-  fprintf ppf "Time : %Li" (current_time ());
+  fprintf ppf "Time: %Li" (current_time ());
   (match current_pc () with
    | Some pc ->
-       fprintf ppf " - pc : %i" pc
+       fprintf ppf " - pc: %i" pc
    | _ -> ());
   update_current_event ();
   reset_frame ();
@@ -44,9 +43,9 @@ let show_current_event ppf =
          | [] ->
              ()
          | [breakpoint] ->
-             fprintf ppf "Breakpoint : %i@." breakpoint
+             fprintf ppf "Breakpoint: %i@." breakpoint
          | breakpoints ->
-             fprintf ppf "Breakpoints : %a@."
+             fprintf ppf "Breakpoints: %a@."
              (fun ppf l ->
                List.iter
                 (function x -> fprintf ppf "%i " x) l)
@@ -75,9 +74,15 @@ let show_one_frame framenum ppf event =
       let buffer = get_buffer pos event.ev_module in
       snd (start_and_cnum buffer pos)
     with _ -> pos.Lexing.pos_cnum in
-  fprintf ppf "#%i  Pc : %i  %s char %i@."
-         framenum event.ev_pos event.ev_module
-         cnum
+  if !machine_readable then
+    fprintf ppf "#%i  Pc: %i  %s char %i@."
+           framenum event.ev_pos event.ev_module
+           cnum
+  else
+    fprintf ppf "#%i %s %s:%i:%i@."
+           framenum event.ev_module
+           pos.Lexing.pos_fname pos.Lexing.pos_lnum
+           (pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1)
 
 (* Display information about the current frame. *)
 (* --- `select frame' must have succeded before calling this function. *)
@@ -90,9 +95,9 @@ let show_current_frame ppf selected =
       begin match breakpoints_at_pc sel_ev.ev_pos with
       | [] -> ()
       | [breakpoint] ->
-          fprintf ppf "Breakpoint : %i@." breakpoint
+          fprintf ppf "Breakpoint: %i@." breakpoint
       | breakpoints ->
-          fprintf ppf "Breakpoints : %a@."
+          fprintf ppf "Breakpoints: %a@."
           (fun ppf l ->
             List.iter (function x -> fprintf ppf "%i " x) l)
           (List.sort compare breakpoints);

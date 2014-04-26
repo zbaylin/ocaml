@@ -11,8 +11,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Manage the loading of the program *)
 
 open Int64ops
@@ -116,14 +114,18 @@ let ask_kill_program () =
 (*** Program loading and initializations. ***)
 
 let initialize_loading () =
-  if !debug_loading then
+  if !debug_loading then begin
     prerr_endline "Loading debugging information...";
+    Printf.fprintf Pervasives.stderr "\tProgram: [%s]\n%!" !program_name;
+  end;
   begin try access !program_name [F_OK]
   with Unix_error _ ->
     prerr_endline "Program not found.";
     raise Toplevel;
   end;
   Symbols.read_symbols !program_name;
+  Config.load_path := !Config.load_path @ !Symbols.program_source_dirs;
+  Envaux.reset_cache ();
   if !debug_loading then
     prerr_endline "Opening a socket...";
   open_connection !socket_name

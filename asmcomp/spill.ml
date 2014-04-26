@@ -10,8 +10,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
-
 (* Insertion of moves to suggest possible spilling / reloading points
    before register allocation. *)
 
@@ -42,7 +40,7 @@ let spill_reg r =
   with Not_found ->
     let spill_r = Reg.create r.typ in
     spill_r.spill <- true;
-    if String.length r.name > 0 then spill_r.name <- "spilled-" ^ r.name;
+    if not (Reg.anonymous r) then spill_r.raw_name <- r.raw_name;
     spill_env := Reg.Map.add r spill_r !spill_env;
     spill_r
 
@@ -245,7 +243,7 @@ let rec reload i before =
         reload i.next (Reg.Set.union after_body after_handler) in
       (instr_cons (Itrywith(new_body, new_handler)) i.arg i.res new_next,
        finally)
-  | Iraise ->
+  | Iraise _ ->
       (add_reloads (Reg.inter_set_array before i.arg) i, Reg.Set.empty)
 
 (* Second pass: add spill instructions based on what we've decided to reload.
@@ -386,7 +384,7 @@ let rec spill i finally =
       spill_at_raise := saved_spill_at_raise;
       (instr_cons (Itrywith(new_body, new_handler)) i.arg i.res new_next,
        before_body)
-  | Iraise ->
+  | Iraise _ ->
       (i, !spill_at_raise)
 
 (* Entry point *)
@@ -404,4 +402,5 @@ let fundecl f =
   { fun_name = f.fun_name;
     fun_args = f.fun_args;
     fun_body = new_body;
-    fun_fast = f.fun_fast }
+    fun_fast = f.fun_fast;
+    fun_dbg  = f.fun_dbg }

@@ -11,8 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
-
 /* Buffered input/output */
 
 #ifndef CAML_IO_H
@@ -22,13 +20,11 @@
 #include "mlvalues.h"
 
 #ifndef IO_BUFFER_SIZE
-#define IO_BUFFER_SIZE 4096
+#define IO_BUFFER_SIZE 65536
 #endif
 
 #if defined(_WIN32)
 typedef __int64 file_offset;
-extern __int64 _lseeki64(int, __int64, int);
-#define lseek(fd,d,m) _lseeki64(fd,d,m)
 #elif defined(HAS_OFF_T)
 #include <sys/types.h>
 typedef off_t file_offset;
@@ -113,14 +109,7 @@ CAMLextern struct channel * caml_all_opened_channels;
 
 /* Conversion between file_offset and int64 */
 
-#ifdef ARCH_INT64_TYPE
 #define Val_file_offset(fofs) caml_copy_int64(fofs)
 #define File_offset_val(v) ((file_offset) Int64_val(v))
-#else
-CAMLextern value caml_Val_file_offset(file_offset fofs);
-CAMLextern file_offset caml_File_offset_val(value v);
-#define Val_file_offset caml_Val_file_offset
-#define File_offset_val caml_File_offset_val
-#endif
 
 #endif /* CAML_IO_H */
