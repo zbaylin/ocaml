@@ -7,11 +7,9 @@ Language features:
 - Attributes and extension nodes
 - Generative functors
 - Module aliases
-- Read-only strings: split the "string" type into two types, "string" and
-  "bytes". Same for the stdlib modules "String" and "Bytes". "string" is
-  now read-only and "bytes" is read-write. A compatibility mode (enabled
-  by default) identifies the two types so old programs still work as
-  before. The new mode is enabled with command-line option "-safe-string".
+* Alternative syntax for string literals {id|...|id} (can break comments)
+- Separation between read-only strings (type string) and read-write byte
+  sequences (type bytes). Activated by command-line option -safe-string.
 
 Build system for the OCaml distribution:
 - Use -bin-annot when building.
@@ -40,6 +38,14 @@ Type system:
   representation is unchanged.
 
 Compilers:
+- More aggressive constant propagation, including float and
+  int32/int64/nativeint arithmetic.  Constant propagation for floats
+  can be turned off with option -no-float-const-prop, for codes that
+  change FP rounding modes at run-time.
+- New back-end optimization pass: common subexpression elimination (CSE).
+  (Reuses results of previous computations instead of recomputing them.)
+- New back-end optimization pass: dead code elimination.
+  (Removes arithmetic and load instructions whose results are unused.)
 - PR#6269 Optimization of string matching (patch by Benoit Vaugon
   and Luc Maranget)
 - Experimental native code generator for AArch64 (ARM 64 bits)
@@ -56,8 +62,7 @@ Compilers:
 - PR#6260: Unnecessary boxing in let (patch by vbrankov)
 
 Toplevel interactive system:
-- Support for directive with multiple arguments
-- PR#5377: New "#show" directive
+- PR#5377: New "#show_*" directives
 
 Runtime system:
 - Fixed a major performance problem on large heaps (~1GB) by making heap
@@ -119,6 +124,7 @@ Bug fixes:
 - PR#6346: Build failure with latest version of xcode on OSX
 - PR#6348: Unification failure for GADT when original definition is hidden
 - PR#6352: Automatic removal of optional arguments and sequencing
+- PR#6361: Hashtbl.hash not terminating on some lazy values w/ recursive types
 - fix -dsource printing of "external _pipe = ..."
   (Gabriel Scherer)
 - bound-checking bug in caml_string_{get,set}{16,32,64}
