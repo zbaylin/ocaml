@@ -22,6 +22,10 @@
       "resolveAsRelativePath": true,
       "global": true,
       "globalCollisionBehavior": "joinPath"
+    },
+    "CHECK_IF_PREINSTALLED": {
+      "val": "false",
+      "global": true
     }
   },
   "repository": {
