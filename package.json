@@ -17,6 +17,11 @@
       "global": true,
       "globalCollisionBehavior": "fail"
     },
+    "OCAMLPARAM": {
+       "global": true,
+       "globalCollisionBehavior": "fail",
+       "val": "_,g=1"
+    },
     "PATH": {
       "val": "./bin",
       "resolveAsRelativePath": true,
