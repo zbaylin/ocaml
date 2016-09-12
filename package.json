@@ -1,6 +1,6 @@
 {
   "name": "ocaml",
-  "version": "0.0.4023",
+  "version": "4.02.3",
   "description": "OCaml Compiler as an Npm Package",
   "scripts": {
     "postinstall": "echo $(pwd) && ls && echo $PATH && ./configure -no-cfi -prefix $(pwd) && make -j world.opt && make install"
