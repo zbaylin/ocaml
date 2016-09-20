@@ -11,7 +11,7 @@
       "val": "see how this must be prefixed by OCAML__ because the package name is ocaml, and this wasnt marked global:true",
       "resolveAsRelativePath": false
     },
-    "OCAMLLIB": {
+    "OCAMLLIB_LOCATION": {
       "val": "./lib/ocaml",
       "resolveAsRelativePath": true,
       "global": true,
