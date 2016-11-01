@@ -3,7 +3,7 @@
   "version": "4.02.3",
   "description": "OCaml Compiler as an Npm Package",
   "scripts": {
-    "postinstall": "echo $(pwd) && ls && echo $PATH && ./configure -no-cfi -prefix $(pwd) && make -j world.opt && make install"
+    "postinstall": "./configure -no-cfi -prefix $(pwd) && make -j world.opt && make install"
   },
   "personal-workflow-for-committing-force-pushing": "git add package.json && git commit --amend --no-edit && git tag -d npm-4.02.3 && git tag npm-4.02.3 && git push -f upstream HEAD:create4_02_3_with_packageJson && git push -f upstream --tags",
   "exportedEnvVars": {
