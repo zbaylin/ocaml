@@ -4,7 +4,7 @@
   "description": "OCaml Compiler as an Npm Package",
   "personal-workflow-for-committing-force-pushing": "git add package.json && git commit --amend --no-edit && git tag -d npm-4.02.3 && git tag npm-4.02.3 && git push -f upstream HEAD:create4_02_3_with_packageJson && git push -f upstream --tags",
   "pjc": {
-    "build": "./configure -no-cfi -prefix $ocaml__install && make -j world.opt && make install && make clean"
+    "build": "make clean && ./configure -no-cfi -prefix $ocaml__install && make -j world.opt && make install && make clean"
   },
   "exportedEnvVars": {
     "OCAMLLIB": {
