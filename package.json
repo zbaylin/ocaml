@@ -5,7 +5,7 @@
   "esy": {
     "build": [
       "./configure -no-cfi -prefix $cur__install",
-      "make -j world.opt",
+      "OS_NAME=$(uname -s) && OS_NAME=${OS_NAME:0:6} && [[ $OS_NAME = "CYGWIN" ]] && make -j1 world.opt || make -j world.opt",
       "make install",
       "make clean"
     ],
