@@ -1,4 +1,4 @@
-# OCaml Packaged as an [`esy`](https://github.com/esy/esy) dependency.
+# OCaml Packaged as an https://github.com/esy/esy/[esy^] dependency.
 
 This is a direct mirror of the official ocaml repo, but with a `package.json`
 that makes it consumable as an `esy` dependency. The version mapping between
