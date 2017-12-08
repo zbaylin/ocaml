@@ -5,7 +5,11 @@
   "esy": {
     "build": [
       "./configure -no-cfi -prefix $cur__install",
-      "[[ `uname -s` == CYGWIN* ]] && make -j1 world.opt || make -j world.opt",
+      [
+        "sh",
+        "-c",
+        "[[ `uname -s` == CYGWIN* ]] && make -j1 world.opt || make -j world.opt"
+      ],
       "make install",
       "make clean"
     ],
