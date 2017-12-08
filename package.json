@@ -1,6 +1,6 @@
 {
   "name": "ocaml",
-  "version": "4.2.3002",
+  "version": "4.2.3003",
   "description": "OCaml Compiler as an npm Package",
   "esy": {
     "build": [
