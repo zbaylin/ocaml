@@ -4,6 +4,7 @@
   "description": "OCaml Compiler as an npm Package",
   "esy": {
     "build": [
+      "mkdir compilerlibs",
       "./configure -no-cfi -prefix $cur__install",
       "make -j1 world.opt",
       "make install",
