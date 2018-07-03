@@ -13,6 +13,10 @@
 # appropriate script depending on the platform. We assume that if the platform is `CYGWIN`
 # that the `mingw` (native executable) strategy is desired.
 
+set -u
+set -e
+set -o pipefail
+
 case "$(uname -s)" in
     CYGWIN*|MINGW32*|MSYS*)
         echo "[esy-configure] Detected windows environment..."
