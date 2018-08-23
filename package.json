@@ -13,15 +13,15 @@
     "buildsInSource": true,
     "exportedEnv": {
       "OCAMLLIB": {
-        "val": "#{os == 'windows' ? ocaml.lib : (ocaml.lib / 'ocaml')}",
+        "val": "#{ocaml.lib / 'ocaml'}",
         "scope": "global"
       },
       "CAML_LD_LIBRARY_PATH": {
-        "val": "#{os == 'windows' ? (ocaml.lib : ocaml.lib / 'stublibs' : $CAML_LD_LIBRARY_PATH) : (ocaml.lib / 'ocaml' / 'stublibs' : ocaml.lib / 'ocaml' : $CAML_LD_LIBRARY_PATH)}",
+        "val": "#{ocaml.lib / 'ocaml' / 'stublibs' : ocaml.lib / 'ocaml' : $CAML_LD_LIBRARY_PATH}",
         "scope": "global"
       },
       "OCAML_TOPLEVEL_PATH": {
-        "val": "#{os == 'windows' ? ocaml.lib : (ocaml.lib / 'ocaml')}",
+        "val": "#{ocaml.lib / 'ocaml'}",
         "scope": "global"
       }
     }
