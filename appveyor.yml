@@ -10,7 +10,6 @@ build_script:
     - esy-bash ./esy-build
     - esy-bash cp /cygdrive/c/ocaml-bits/bin/flexlink.exe /usr/local/bin/flexlink.exe
     - echo print_endline "Hello from OCaml";; > C:/ocaml-bits/test.ml
-    - esy-bash which flexlink
     - esy-bash /cygdrive/c/ocaml-bits/bin/ocamlopt.exe -o C:/ocaml-bits/test-output C:/ocaml-bits/test.ml
     - C:/ocaml-bits/test-output.exe
 
