@@ -16,7 +16,7 @@ case "$(uname -s)" in
         ;;
     *)
         echo "[esy-build] Detected OSX / Linux environment"
-        make -j world.opt
+        make -j4 world.opt
         ;;
 esac
 
