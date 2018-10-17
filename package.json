@@ -4,11 +4,10 @@
   "description": "OCaml Compiler as an npm Package",
   "esy": {
     "build": [
-      "mkdir compilerlibs",
-      "./configure -no-cfi -prefix $cur__install",
-      "make -j1 world.opt",
-      "make install",
-      "make clean"
+      ["mkdir", "-p", "compilerlibs"],
+      ["bash", "-c", "#{os == 'windows' ? './esy/configure-windows.sh -prefix $cur__install' : 'true'}"],
+      ["bash", "-c", "#{os != 'windows' ? './configure -no-cfi -prefix $cur__install' : 'true'}"],
+      ["bash", "-c", "#{os == 'windows' ? './esy/build-windows.sh' : './esy/build.sh'}"]
     ],
     "buildsInSource": true,
     "exportedEnv": {
@@ -25,6 +24,9 @@
         "scope": "global"
       }
     }
+  },
+  "dependencies": {
+    "flexdll-prebuilt": "^0.37.1"
   },
   "repository": {
     "type": "git",
