@@ -1,13 +1,29 @@
 {
   "name": "ocaml",
-  "version": "4.2.3005",
+  "version": "4.2.3006",
   "description": "OCaml Compiler as an npm Package",
   "esy": {
     "build": [
-      ["mkdir", "-p", "compilerlibs"],
-      ["bash", "-c", "#{os == 'windows' ? './esy/configure-windows.sh -prefix $cur__install' : 'true'}"],
-      ["bash", "-c", "#{os != 'windows' ? './configure -no-cfi -prefix $cur__install' : 'true'}"],
-      ["bash", "-c", "#{os == 'windows' ? './esy/build-windows.sh' : './esy/build.sh'}"]
+      [
+        "mkdir",
+        "-p",
+        "compilerlibs"
+      ],
+      [
+        "bash",
+        "-c",
+        "#{os == 'windows' ? './esy/configure-windows.sh -prefix $cur__install' : 'true'}"
+      ],
+      [
+        "bash",
+        "-c",
+        "#{os != 'windows' ? './configure -no-cfi -prefix $cur__install' : 'true'}"
+      ],
+      [
+        "bash",
+        "-c",
+        "#{os == 'windows' ? './esy/build-windows.sh' : './esy/build.sh'}"
+      ]
     ],
     "buildsInSource": true,
     "exportedEnv": {
