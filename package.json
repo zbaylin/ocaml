@@ -23,6 +23,10 @@
       "OCAML_TOPLEVEL_PATH": {
         "val": "#{ocaml.lib / 'ocaml'}",
         "scope": "global"
+      },
+      "FLEXLINKFLAGS": {
+        "val": "-v",
+        "scope": "global"
       }
     }
   },
