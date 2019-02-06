@@ -22,4 +22,3 @@ esac
 
 # Common build steps
 make install
-make clean
