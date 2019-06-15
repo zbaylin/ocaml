@@ -140,7 +140,9 @@ menhir-bench.bash typo.missing-header typo.utf8
 /tools/ci/appveyor/appveyor_build.cmd text eol=crlf
 
 configure text eol=lf
+configure-windows text eol=lf
 configure.ac text eol=lf
+clone-flexdll text eol=lf
 autogen text eol=lf
 build-aux/compile text eol=lf
 build-aux/config.guess text eol=lf
@@ -156,6 +158,8 @@ config/auto-aux/tryassemble text eol=lf
 config/auto-aux/trycompile text eol=lf
 config/gnu/config.guess text eol=lf
 config/gnu/config.sub text eol=lf
+esy-build text eol=lf
+esy-configure text eol=lf
 ocamldoc/remove_DEBUG text eol=lf
 ocamltest/getocamloptdefaultflags text eol=lf
 stdlib/Compflags text eol=lf
