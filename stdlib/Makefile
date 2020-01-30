@@ -16,6 +16,7 @@
 include ../config/Makefile
 CAMLRUN ?= ../boot/ocamlrun
 CAMLYACC ?= ../boot/ocamlyacc
+ROOTDIR = ..
 TARGET_BINDIR ?= $(BINDIR)
 
 COMPILER=../ocamlc
@@ -31,6 +32,8 @@ endif
 OPTCOMPILER=../ocamlopt
 CAMLOPT=$(CAMLRUN) $(OPTCOMPILER)
 CAMLDEP=$(CAMLRUN) ../tools/ocamldep
+CPPFLAGS += -I../byterun
+
 
 OBJS=camlinternalFormatBasics.cmo pervasives.cmo $(OTHERS)
 OTHERS=list.cmo char.cmo uchar.cmo bytes.cmo string.cmo sys.cmo \
@@ -51,6 +54,7 @@ OTHERS=list.cmo char.cmo uchar.cmo bytes.cmo string.cmo sys.cmo \
   spacetime.cmo camlinternalBigarray.cmo
 
 .PHONY: all
+.NOPARALLEL: all
 all: stdlib.cma std_exit.cmo camlheader target_camlheader camlheader_ur
 
 ifeq "$(RUNTIMED)" "true"
@@ -114,9 +118,13 @@ installopt-prof:
 	cd "$(INSTALL_LIBDIR)"; $(RANLIB) stdlib.p.$(A)
 
 ifeq "$(UNIX_OR_WIN32)" "unix"
-HEADERPROGRAM = header.c
+HEADERPROGRAM = header
+HEADER_PATH = $(BINDIR)/
+HEADER_TARGET_PATH = $(TARGET_BINDIR)/
 else # Windows
-HEADERPROGRAM = headernt.c
+HEADERPROGRAM = headernt
+HEADER_PATH =
+HEADER_TARGET_PATH =
 endif
 
 CAMLHEADERS =\
@@ -124,66 +132,64 @@ CAMLHEADERS =\
   camlheaderd target_camlheaderd \
   camlheaderi target_camlheaderi
 
+# The % in pattern rules must always match something, hence the slightly strange
+# patterns and $(subst ...) since `camlheader%:` wouldn't match `camlheader`
 ifeq "$(HASHBANGSCRIPTS)" "true"
-$(CAMLHEADERS): ../config/Makefile
-	for suff in '' d i; do \
-	  echo '#!$(BINDIR)/ocamlrun'$$suff > camlheader$$suff && \
-	  echo '#!$(TARGET_BINDIR)/ocamlrun'$$suff >target_camlheader$$suff; \
-	done && \
-	echo '#!' | tr -d '\012' > camlheader_ur;
+camlhead%: $(ROOTDIR)/config/Makefile Makefile
+	echo '#!$(BINDIR)/ocamlrun$(subst er,,$*)' > $@
+
+target_%: $(ROOTDIR)/config/Makefile Makefile
+	echo '#!$(TARGET_BINDIR)/ocamlrun$(subst camlheader,,$*)' > $@
+
+camlheader_ur: Makefile
+	echo '#!' | tr -d '\012' > $@
+
 else # Hashbang scripts not supported
 
-$(CAMLHEADERS): $(HEADERPROGRAM) ../config/Makefile
+$(CAMLHEADERS): $(HEADERPROGRAM).c $(ROOTDIR)/config/Makefile Makefile
+
+# $@.exe is deleted to ensure no Cygwin .exe mangling takes place
+camlhead%: tmphead%.exe
+	rm -f $@.exe
+	mv $< $@
+
+# Again, pattern weirdness here means that the dot is always present so that
+# tmpheader.exe matches.
+tmpheader%exe: $(HEADERPROGRAM)%$(O)
+	$(call MKEXE_BOOT,$@,$^ $(EXTRALIBS))
+# FIXME This is wrong - mingw could invoke strip; MSVC equivalent?
+ifneq "$(UNIX_OR_WIN32)" "win32"
+	strip $@
+endif
+
+$(HEADERPROGRAM)%$(O): $(HEADERPROGRAM).c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) \
+	      -DRUNTIME_NAME='"$(HEADER_PATH)ocamlrun$(subst .,,$*)"' \
+	      $(OUTPUTOBJ)$@ $^
+
+camlheader_ur: camlheader
+	cp camlheader $@
 
 ifeq "$(UNIX_OR_WIN32)" "unix"
-$(CAMLHEADERS):
-	for suff in '' d i; do \
-	  $(CC) $(CFLAGS) $(CPPFLAGS) -I../byterun $(LDFLAGS) \
-	            -DRUNTIME_NAME='"$(BINDIR)/ocamlrun'$$suff'"' \
-	            header.c $(OUTPUTEXE)tmpheader$(EXE) && \
-	  strip tmpheader$(EXE) && \
-	  mv tmpheader$(EXE) camlheader$$suff && \
-	  $(CC) $(CFLAGS) $(CPPFLAGS) -I../byterun $(LDFLAGS) \
-	            -DRUNTIME_NAME='"$(TARGET_BINDIR)/ocamlrun'$$suff'"' \
-	            header.c $(OUTPUTEXE)tmpheader$(EXE) && \
-	  strip tmpheader$(EXE) && \
-	  mv tmpheader$(EXE) target_camlheader$$suff; \
-	done && \
-	cp camlheader camlheader_ur
+tmptargetcamlheader%exe: $(HEADERPROGRAM)%$(O)
+	$(call MKEXE_BOOT,$@,$^ $(EXTRALIBS))
+	strip $@
 
-else # Windows
+$(TARGETHEADERPROGRAM)%$(O): $(HEADERPROGRAM).c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) \
+	      -DRUNTIME_NAME='"$(HEADER_TARGET_PATH)ocamlrun$(subst .,,$*)"' \
+	      $(OUTPUTOBJ)$@ $^
 
-# TODO: see whether there is a way to further merge the rules below
-# with those above
-
-camlheader target_camlheader camlheader_ur: headernt.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -I../byterun \
-	          -DRUNTIME_NAME='"ocamlrun"' $(OUTPUTOBJ)headernt.$(O) $<
-	$(MKEXE) -o tmpheader.exe headernt.$(O) $(EXTRALIBS)
-	rm -f camlheader.exe
-	mv tmpheader.exe camlheader
-	cp camlheader target_camlheader
-	cp camlheader camlheader_ur
-
-camlheaderd target_camlheaderd: headernt.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -I../byterun \
-	          -DRUNTIME_NAME='"ocamlrund"' $(OUTPUTOBJ)headernt.$(O) $<
-	$(MKEXE) -o tmpheader.exe headernt.$(O) $(EXTRALIBS)
-	mv tmpheader.exe camlheaderd
-	cp camlheaderd target_camlheaderd
-
-camlheaderi: headernt.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -I../byterun \
-	          -DRUNTIME_NAME='"ocamlruni"' $(OUTPUTOBJ)headernt.$(O)
-	$(MKEXE) -o tmpheader.exe headernt.$(O) $(EXTRALIBS)
-	mv tmpheader.exe camlheaderi
-
-# TODO: do not call flexlink to build tmpheader.exe (we don't need
-# the export table)
-
-endif # ifeq "$(UNIX_OR_WIN32)" "unix"
+target_%: tmptarget%.exe
+	rm -f $@.exe
+	mv $< $@
+else
+target_%: %
+	cp $< $@
+endif
 
 endif # ifeq "$(HASHBANGSCRIPTS)" "true"
+
 
 stdlib.cma: $(OBJS)
 	$(CAMLC) -a -o $@ $^

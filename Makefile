@@ -76,6 +76,8 @@ CAMLDEP=$(CAMLRUN) tools/ocamldep
 DEPFLAGS=$(INCLUDES)
 
 OCAMLDOC_OPT=$(WITH_OCAMLDOC:=.opt)
+# OCAMLDOC_OPT:=.opt
+WITH_OCAMLDOC=
 
 UTILS=utils/config.cmo utils/misc.cmo \
   utils/identifiable.cmo utils/numbers.cmo utils/arg_helper.cmo \
@@ -488,8 +490,11 @@ opt.opt:
 	$(MAKE) ocamllex.opt ocamltoolsopt ocamltoolsopt.opt $(OCAMLDOC_OPT) \
 	  ocamltest.opt
 else
-opt.opt: core opt-core ocamlc.opt all ocamlopt.opt ocamllex.opt \
-         ocamltoolsopt ocamltoolsopt.opt otherlibrariesopt $(OCAMLDOC_OPT) \
+opt.opt: core opt-core
+	$(MAKE) ocamlc.opt all ocamlopt.opt
+	$(MAKE) otherlibrariesopt $(OCAMLDOC_OPT)
+	$(MAKE) ocamllex.opt \
+         ocamltoolsopt ocamltoolsopt.opt \
          ocamltest.opt
 endif
 
