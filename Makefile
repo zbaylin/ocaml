@@ -490,7 +490,9 @@ opt.opt:
 	$(MAKE) ocamllex.opt ocamltoolsopt ocamltoolsopt.opt $(OCAMLDOC_OPT) \
 	  ocamltest.opt
 else
-opt.opt: core opt-core
+opt.opt:
+	$(MAKE) core
+	$(MAKE) opt-core
 	$(MAKE) ocamlc.opt 
 	$(MAKE) all
 	$(MAKE) ocamlopt.opt
