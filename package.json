@@ -7,7 +7,7 @@
   ],
   "esy": {
     "build": [
-      "./esy-configure -flambda --disable-cfi --prefix $cur__install",
+      "./esy-configure -spacetime --disable-cfi --prefix $cur__install",
       "./esy-build"
     ],
     "buildsInSource": true,
