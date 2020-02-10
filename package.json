@@ -7,7 +7,7 @@
   ],
   "esy": {
     "build": [
-      "./esy-configure -spacetime --disable-cfi --prefix $cur__install",
+      "./esy-configure --enable-spacetime --disable-cfi --prefix $cur__install",
       "./esy-build"
     ],
     "buildsInSource": true,
