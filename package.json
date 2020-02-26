@@ -1,7 +1,7 @@
 {
-  "name": "ocaml",
+  "name": "ocaml-secondary-compiler",
   "version": "4.8.1000",
-  "description": "OCaml Compiler as an esy npm Package",
+  "description": "OCaml Secondary Compiler as an esy npm Package",
   "versionNotes": [
     "See the README for notes about how the version of this package corresponds to the official OCaml compiler version."
   ],
