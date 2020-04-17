@@ -242,6 +242,7 @@ else
 	do \
 	  if test -f "$$i".opt; then \
 	    $(INSTALL_PROG) "$$i.opt" "$(INSTALL_BINDIR)/$$i.opt$(EXE)"; \
+	    (cd "$(INSTALL_BINDIR)/" && $(LN) "$$i.opt$(EXE)" "$$i$(EXE)"); \
 	  fi; \
 	done
 endif
@@ -321,9 +322,13 @@ else
 DEF_SYMBOL_PREFIX = '-Dsymbol_prefix=""'
 endif
 
-objinfo_helper$(EXE): objinfo_helper.c $(ROOTDIR)/runtime/caml/s.h
-	$(CC) $(OC_CFLAGS) $(OC_CPPFLAGS) -I$(ROOTDIR)/runtime $(OUTPUTEXE)$@ \
-          $(DEF_SYMBOL_PREFIX) $(LIBBFD_INCLUDE) $< $(LIBBFD_LINK)
+objinfo_helper$(EXE): objinfo_helper.$(O)
+	$(CC) $(BFD_LDFLAGS) $(OC_CFLAGS) $(OUTPUTEXE)$@ $< $(BFD_LDLIBS)
+
+objinfo_helper.$(O): $(ROOTDIR)/runtime/caml/s.h
+
+objinfo_helper.$(O): \
+  OC_CPPFLAGS += -I$(ROOTDIR)/runtime $(DEF_SYMBOL_PREFIX) $(BFD_CPPFLAGS)
 
 OBJINFO=$(ROOTDIR)/compilerlibs/ocamlcommon.cma \
         $(ROOTDIR)/compilerlibs/ocamlbytecomp.cma \
