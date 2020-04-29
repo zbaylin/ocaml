@@ -1,3 +1,60 @@
+# OCaml packaged for esy
+
+## Contributor notes
+To package for esy, an `esy.json` has to be placed in the root with the build instructions.
+
+## Getting started
+(Request the maintainers to create the target branch beforehand)
+
+### Automatic
+1. Download [this](https://gist.github.com/ulrikstrid/a4f0058e0153e3317fae44d1792bddb4) patch
+2. Apply the downloaded patch: `git apply esy-patch.patch`
+3. Test
+
+### Manual
+Copying esy.json and the related files from a previous version. (For instance, if you are
+trying to package 4.11, you can refer 4.10' setup)
+
+These files include
+1. package.json
+2. Git files: `.gitattributes` and `.gitignore`
+3. CI files: `.ci/` folder and `azure-pipelines.yml`
+4. Bash scripts: `clone-flexdll`, `configure-windows`, `esy-build`, `esy-configure`, 
+5. Test app: `test-app`
+
+## Verifying the NPM package
+1. Shasum of the published NPM package can be obtained from `npm info ocaml`
+
+```
+ocaml@4.10.0 | QPL - See LICENSE at https://github.com/ocaml/ocaml | deps: none | versions: 38
+OCaml Compiler as an esy npm Package
+https://github.com/esy-ocaml/ocaml#readme
+
+keywords: ocaml, flow, opam
+
+dist
+.tarball: https://registry.npmjs.org/ocaml/-/ocaml-4.10.0.tgz
+.shasum: 3797ee252dca8dec38d3cdd42162923f56dba433
+.integrity: sha512-HV3V/6VfYli5XTm/DC91YIAbgjB+6vUP/BHrPOHoXi+PAGa83kS4BLV6og3cmYJmrr0RT0hWuIhev+9nSYchHA==
+.unpackedSize: 23.8 MB
+
+maintainers:
+- foo
+- bar
+
+dist-tags:
+latest: 4.10.0  
+
+published 28 minutes ago by foo <foo@email.com>
+```
+2. `shasum` of this repo can be obtained by
+
+  a) Clone the repo
+  b) Run `npm pack` inside the repo
+  c) `shasum ocaml-version.tgz`
+
+
+## Original README
 OVERVIEW:
 
 OCaml is an implementation of the ML language, based on the Caml Light
