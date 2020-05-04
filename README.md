@@ -1,7 +1,7 @@
 # OCaml packaged for esy
 
 ## Contributor notes
-To package for esy, an `esy.json` has to be placed in the root with the build instructions.
+To package for esy, a `package.json` has to be placed in the root with the build instructions.
 
 ## Getting started
 (Request the maintainers to create the target branch beforehand)
@@ -12,7 +12,7 @@ To package for esy, an `esy.json` has to be placed in the root with the build in
 3. Test
 
 ### Manual
-Copying esy.json and the related files from a previous version. (For instance, if you are
+Requires copying the package.json and the related files from a previous version. (For instance, if you are
 trying to package 4.11, you can refer 4.10' setup)
 
 These files include
