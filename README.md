@@ -13,7 +13,7 @@ To package the compiler for esy, a `package.json` has to be placed in the root w
 
 ### Manual
 Requires copying the package.json and the related files from a previous version. (For instance, if you are
-trying to package 4.11, you can refer 4.10' setup)
+trying to package 4.11, you can refer 4.10's setup)
 
 These files include
 1. package.json
