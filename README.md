@@ -1,7 +1,7 @@
 # OCaml packaged for esy
 
 ## Contributor notes
-To package for esy, a `package.json` has to be placed in the root with the build instructions.
+To package the compiler for esy, a `package.json` has to be placed in the root with the build instructions.
 
 ## Getting started
 (Request the maintainers to create the target branch beforehand)
@@ -51,7 +51,7 @@ published 28 minutes ago by foo <foo@email.com>
 
   a) Clone the repo
   b) Run `npm pack` inside the repo
-  c) `shasum ocaml-version.tgz`
+  c) `shasum ocaml-<version>.tgz`
 
 
 ## Original README
