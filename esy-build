@@ -13,16 +13,19 @@ case "$(uname -s)" in
         echo "[esy-build] Detected windows environment..."
         make world.opt
         make flexlink.opt
+	make install
+	echo "Remove bytecode binaries.."
+	rm $cur__install/bin/*.opt.exe
+	rm $cur__install/bin/*.byte.exe
+	echo "Done"
         ;;
     *)
         echo "[esy-build] Detected OSX / Linux environment"
         make -j4 world.opt
+	make install
+	echo "Remove bytecode binaries.."
+	rm $cur__install/bin/*.byte
+	echo "Done"
         ;;
 esac
 
-# Common build steps
-make install
-
-echo "Remove bytecode binaries.."
-rm $cur__install/bin/*.byte
-echo "Done"
