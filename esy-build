@@ -22,3 +22,7 @@ esac
 
 # Common build steps
 make install
+
+echo "Remove bytecode binaries.."
+rm $cur__install/bin/*.byte
+echo "Done"
