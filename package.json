@@ -7,8 +7,13 @@
   ],
   "esy": {
     "build": [
-      "./esy-configure -no-cfi -prefix $cur__install",
-      "./esy-build"
+      "bash -c 'cd #{self.root / '4.6'}; ./esy-configure -no-cfi -prefix $cur__install'",
+      "bash -c 'cd #{self.root / '4.6'}; ./esy-build'",
+      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-configure --libdir=$cur__install/share/lib --disable-debugger --disable-installing-bytecode-programs --disable-debug-runtime --disable-instrumented-runtime --disable-cfi --prefix $cur__install/share'",
+      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-build'",
+      "bash gen-findlib-conf.sh $cur__install/share",
+      "mkdir -p $cur__install/lib/findlib.conf.d/",
+      "cp ocaml-secondary-compiler.conf $cur__install/lib/findlib.conf.d/"
     ],
     "buildsInSource": true,
     "exportedEnv": {
