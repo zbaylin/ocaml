@@ -1,6 +1,6 @@
 {
   "name": "ocaml",
-  "version": "4.6.1000",
+  "version": "4.6.1002",
   "description": "OCaml Compiler as an esy npm Package",
   "versionNotes": [
     "See the README for notes about how the version of this package corresponds to the official OCaml compiler version."
@@ -9,11 +9,8 @@
     "build": [
       "bash -c 'cd #{self.root / '4.6'}; ./esy-configure -no-cfi -prefix $cur__install'",
       "bash -c 'cd #{self.root / '4.6'}; ./esy-build'",
-      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-configure --libdir=$cur__install/share/lib --disable-debugger --disable-installing-bytecode-programs --disable-debug-runtime --disable-instrumented-runtime --disable-cfi --prefix $cur__install/share'",
-      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-build'",
-      "bash gen-findlib-conf.sh $cur__install/share",
-      "mkdir -p $cur__install/lib/findlib.conf.d/",
-      "cp ocaml-secondary-compiler.conf $cur__install/lib/findlib.conf.d/"
+      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-configure --disable-debugger --disable-installing-bytecode-programs --disable-debug-runtime --disable-instrumented-runtime --disable-cfi --prefix $cur__install/share/ocaml-secondary-compiler --libdir $cur__install/share/ocaml-secondary-compiler/lib'",
+      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-build'"
     ],
     "buildsInSource": true,
     "exportedEnv": {
