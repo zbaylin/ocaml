@@ -10,7 +10,10 @@
       "bash -c 'cd #{self.root / '4.6'}; ./esy-configure -no-cfi -prefix $cur__install'",
       "bash -c 'cd #{self.root / '4.6'}; ./esy-build'",
       "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-configure --disable-debugger --disable-installing-bytecode-programs --disable-debug-runtime --disable-instrumented-runtime --disable-cfi --prefix $cur__install/share/ocaml-secondary-compiler --libdir $cur__install/share/ocaml-secondary-compiler/lib'",
-      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-build'"
+      "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-build'",
+      "mkdir -p #{self.install}/share/ocaml-secondary-compiler/lib",
+      "bash -c 'cd #{self.root / 'ocamlfind-secondary'}; ./configure -sitelib $cur__install/share/ocaml-secondary-compiler/lib -no-camlp4'",
+      "bash -c 'cd #{self.root / 'ocamlfind-secondary'}; make install-meta'"
     ],
     "buildsInSource": true,
     "exportedEnv": {
