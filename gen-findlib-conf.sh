@@ -1,4 +1,4 @@
-OCAML_SECONDARY_COMPILER=$1
+OCAML_SECONDARY_COMPILER=$cur__install/share/ocaml-secondary-compiler
 
 cat >ocaml-secondary-compiler.conf <<EOF
 
