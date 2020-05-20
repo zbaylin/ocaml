@@ -1,6 +1,6 @@
 {
   "name": "ocaml",
-  "version": "4.6.1002",
+  "version": "4.6.1003",
   "description": "OCaml Compiler as an esy npm Package",
   "versionNotes": [
     "See the README for notes about how the version of this package corresponds to the official OCaml compiler version."
@@ -11,9 +11,11 @@
       "bash -c 'cd #{self.root / '4.6'}; ./esy-build'",
       "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-configure --disable-debugger --disable-installing-bytecode-programs --disable-debug-runtime --disable-instrumented-runtime --disable-cfi --prefix $cur__install/share/ocaml-secondary-compiler --libdir $cur__install/share/ocaml-secondary-compiler/lib'",
       "bash -c 'cd #{self.root / 'secondary-4.8'}; ./esy-build'",
-      "mkdir -p #{self.install}/share/ocaml-secondary-compiler/lib",
+      "mkdir -p #{self.share}/ocaml-secondary-compiler/lib",
       "bash -c 'cd #{self.root / 'ocamlfind-secondary'}; ./configure -sitelib $cur__install/share/ocaml-secondary-compiler/lib -no-camlp4'",
       "bash -c 'cd #{self.root / 'ocamlfind-secondary'}; make install-meta'"
+      "mkdir -p #{self.share}/ocaml-secondary-compiler/lib/ocaml",
+      "cp #{self.root / 'ocamlfind-secondary'/ 'META'} #{self.share}/ocaml-secondary-compiler/lib/ocaml",
     ],
     "buildsInSource": true,
     "exportedEnv": {
