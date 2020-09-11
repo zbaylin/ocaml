@@ -53,6 +53,8 @@ published 28 minutes ago by foo <foo@email.com>
   b) Run `npm pack` inside the repo
   c) `shasum ocaml-<version>.tgz`
 
+Note for Windows developers: `npm` on Windows seems to reset the file perms on the scripts (esy-configure, configure, esy-build). Use a Unix machine or WSL (untested).
+
 
 ## Original README
 OVERVIEW:
