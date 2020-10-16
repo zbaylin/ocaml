@@ -22,8 +22,18 @@ case "$(uname -s)" in
         echo "[esy-configure] Detected windows environment..."
         ./configure-windows "$@"
         ;;
-    *)
-        echo "[esy-configure] Detected OSX / Linux environment"
+    Darwin*)
+        echo "[esy-configure] Detected OSX"
         ./configure "$@"
         ;;
+    *)
+	echo "[esy-configure] Detected Linux environment"
+	. /etc/os-release
+	case "$ID" in
+	    alpine)
+		./configure "CFLAGS=-Os" "--enable-flambda" "LIBS=-static" "$@"
+		;;
+	    *)
+		./configure "CC=musl-gcc" "ASPP=musl-gcc -c" "CFLAGS=-Os" "--enable-flambda" "LIBS=-static" "$@"
+	esac
 esac
